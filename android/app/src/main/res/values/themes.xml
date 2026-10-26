@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<resources>
+    <style name="Theme.Torflix" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:colorAccent">@color/accent</item>
+    </style>
+
+    <!-- No opening or closing animation: straight to the picture, and straight back. -->
+    <style name="Theme.Torflix.Player">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <color name="background">#FF0B0B0F</color>
+    <color name="accent">#FFE50914</color>
+</resources>

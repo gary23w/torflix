@@ -1,0 +1,68 @@
+{
+  "name": "torflix",
+  "productName": "Torflix",
+  "version": "0.3.0",
+  "description": "Torflix for Android TV and the desktop: browse what performs best on the swarm and stream it. Built on the design of TorrentPlayer.",
+  "homepage": "https://github.com/gary23w/torflix",
+  "license": "MIT OR Apache-2.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main/main.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --smoke",
+    "test": "node --test \"test/**/*.test.js\"",
+    "dist": "electron-builder",
+    "android:build": "node tools/android/build.mjs",
+    "android:release": "node tools/android/release.mjs"
+  },
+  "dependencies": {
+    "parse-torrent": "^11.0.24",
+    "webtorrent": "^3.0.21"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.12",
+    "esbuild": "0.28.2"
+  },
+  "build": {
+    "appId": "io.torflix.app",
+    "productName": "Torflix",
+    "files": [
+      "src/**/*",
+      "!src/android/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "Torflix-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.video",
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Video",
+      "icon": "assets/icon.png"
+    }
+  }
+}

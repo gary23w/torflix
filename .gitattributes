@@ -1,0 +1,5 @@
+* text=auto
+# Run by bash (WSL, Linux, macOS): CRLF line endings break them.
+*.sh text eol=lf
+gradlew text eol=lf
+*.bat text eol=crlf

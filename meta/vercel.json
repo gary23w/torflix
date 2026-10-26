@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/v1/:path*", "destination": "/api/meta?path=:path*" },
+    { "source": "/", "destination": "/api/meta?path=health" }
+  ],
+  "functions": {
+    "api/meta.js": { "maxDuration": 30, "memory": 256 }
+  }
+}

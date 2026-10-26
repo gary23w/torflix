@@ -1,0 +1,23 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://static.tvmaze.com https://*.wikimedia.org; media-src http://127.0.0.1:* blob:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Torflix</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app">
+      <nav id="rail" class="rail" aria-label="Main"></nav>
+      <main id="views" class="views"></main>
+      <div id="toasts" class="toasts" aria-live="polite"></div>
+      <div id="drop" class="drop" hidden><div class="drop-card">Drop the .torrent file to open it</div></div>
+    </div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

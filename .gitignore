@@ -1,0 +1,11 @@
+node_modules/
+dist/
+smoke/
+android/app/src/main/assets/torflix/
+android/app/src/main/jniLibs/
+android/app/src/main/ffmpeg/
+.claude/
+.vercel/
+.env*
+*.keystore
+*.jks
