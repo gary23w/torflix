@@ -53,10 +53,29 @@ if (process.platform === 'win32') {
   // The installer winget and Chocolatey run, silently and per user, then its uninstaller.
   check('installer', () => {
     run(find(/^Torflix-Setup-.*\.exe$/), ['/S']);
-    const dir = ['torflix', 'Torflix']
-      .map((name) => path.join(process.env.LOCALAPPDATA, 'Programs', name))
-      .find((candidate) => fs.existsSync(path.join(candidate, 'Torflix.exe')));
-    if (!dir) throw new Error('Torflix.exe is not under %LOCALAPPDATA%\\Programs');
+    // Where the installer says it put Torflix (its uninstall entry), waiting a minute in case
+    // it handed the work to another process.
+    const installed = () => {
+      const keys = ['HKCU', 'HKLM'].map((hive) => `${hive}\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall`);
+      for (const key of keys) {
+        const out = spawnSync('reg', ['query', key, '/s', '/v', 'InstallLocation'], { encoding: 'utf8' }).stdout ?? '';
+        const dir = out.match(/InstallLocation\s+REG_SZ\s+(.*torflix.*)$/im)?.[1].trim();
+        if (dir && fs.existsSync(path.join(dir, 'Torflix.exe'))) return dir;
+      }
+      return null;
+    };
+    let dir = installed();
+    for (let waited = 0; !dir && waited < 60; waited += 5) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000);
+      dir = installed();
+    }
+    if (!dir) {
+      const programs = path.join(process.env.LOCALAPPDATA, 'Programs');
+      console.log(`${programs}: ${fs.existsSync(programs) ? fs.readdirSync(programs).join(', ') : 'missing'}`);
+      spawnSync('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall', '/s', '/f', 'Torflix'], { stdio: 'inherit' });
+      throw new Error('the installer left no Torflix.exe it records');
+    }
+    console.log(`Installed in ${dir}`);
     launch('installer', path.join(dir, 'Torflix.exe'));
     run(path.join(dir, 'Uninstall Torflix.exe'), ['/S', '_?=' + dir]);
     if (fs.existsSync(path.join(dir, 'Torflix.exe'))) throw new Error('the uninstaller left Torflix.exe');
