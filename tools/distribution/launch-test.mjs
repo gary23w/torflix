@@ -55,25 +55,17 @@ if (process.platform === 'win32') {
     run(find(/^Torflix-Setup-.*\.exe$/), ['/S']);
     // Where the installer says it put Torflix (its uninstall entry), waiting a minute in case
     // it handed the work to another process.
-    const installed = () => {
-      const keys = ['HKCU', 'HKLM'].map((hive) => `${hive}\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall`);
-      for (const key of keys) {
-        const out = spawnSync('reg', ['query', key, '/s', '/v', 'InstallLocation'], { encoding: 'utf8' }).stdout ?? '';
-        const dir = out.match(/InstallLocation\s+REG_SZ\s+(.*torflix.*)$/im)?.[1].trim();
-        if (dir && fs.existsSync(path.join(dir, 'Torflix.exe'))) return dir;
-      }
-      return null;
-    };
-    let dir = installed();
-    for (let waited = 0; !dir && waited < 60; waited += 5) {
+    const uninstall = spawnSync('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall', '/s', '/f', 'Uninstall Torflix.exe'], { encoding: 'utf8' }).stdout ?? '';
+    const uninstaller = uninstall.match(/UninstallString\s+REG_SZ\s+"([^"]+)"/)?.[1];
+    if (!uninstaller) throw new Error('the installer wrote no uninstall entry');
+    const dir = path.dirname(uninstaller);
+    const exe = path.join(dir, 'Torflix.exe');
+    for (let waited = 0; !fs.existsSync(exe) && waited < 60; waited += 5) {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000);
-      dir = installed();
     }
-    if (!dir) {
-      const programs = path.join(process.env.LOCALAPPDATA, 'Programs');
-      console.log(`${programs}: ${fs.existsSync(programs) ? fs.readdirSync(programs).join(', ') : 'missing'}`);
-      spawnSync('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall', '/s', '/f', 'Torflix'], { stdio: 'inherit' });
-      throw new Error('the installer left no Torflix.exe it records');
+    if (!fs.existsSync(exe)) {
+      console.log(`${dir}: ${fs.existsSync(dir) ? fs.readdirSync(dir).join(', ') : 'missing'}`);
+      throw new Error('the installer recorded an install without Torflix.exe');
     }
     console.log(`Installed in ${dir}`);
     launch('installer', path.join(dir, 'Torflix.exe'));
