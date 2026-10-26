@@ -69,7 +69,9 @@
         "dmg"
       ],
       "category": "public.app-category.video",
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.icns",
+      "identity": "-",
+      "hardenedRuntime": false
     },
     "linux": {
       "target": [

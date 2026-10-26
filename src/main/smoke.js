@@ -16,7 +16,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function runSmoke(ctx, root) {
   const { win, streams, search, engine, library } = ctx;
-  const out = path.join(root, 'smoke');
+  // TORRENTPLAYER_SMOKE_OUT moves the screenshots, for a packaged app whose root is app.asar.
+  const out = process.env.TORRENTPLAYER_SMOKE_OUT || path.join(root, 'smoke');
   await fsp.mkdir(out, { recursive: true });
   const results = [];
   const check = (name, ok, detail = '') => {
