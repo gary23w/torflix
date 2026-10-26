@@ -22,6 +22,7 @@ import { Titles } from './titles.js';
 import { Downloads } from './downloads.js';
 import { Cache } from './cache.js';
 import { MediaTools } from './media-tools.js';
+import { ShareServer } from './share.js';
 
 /**
  * Starts the services and wires their events to `send(name, payload)`. Background downloads
@@ -33,8 +34,9 @@ import { MediaTools } from './media-tools.js';
  * @param {(name: string, payload: any) => void} opts.send delivers an event to the window
  * @param {string} opts.version Torflix's version, for the User-Agent metadata sources see
  * @param {string} opts.platform 'desktop' or 'android-tv', the same
+ * @param {object} [opts.share] for sharing to TVs (share.js): `deviceName`, `iconPath`, `onMulticast`
  */
-export async function createCore({ dataDir, defaultDownloadDir, send, version = '0', platform = null }) {
+export async function createCore({ dataDir, defaultDownloadDir, send, version = '0', platform = null, share: shareOpts = {} }) {
   const settings = new SettingsStore(dataDir, defaultDownloadDir);
   const downloadDir = settings.activeDownloadDir;
   await fsp.mkdir(downloadDir, { recursive: true }).catch(() => {});
@@ -63,8 +65,11 @@ export async function createCore({ dataDir, defaultDownloadDir, send, version = 
   const titles = new Titles({ browse, metadata, search, library });
   const downloads = new Downloads({ engine, library, streams, settings });
   const cache = new Cache({ downloadDir, engine, library, settings });
+  const share = new ShareServer({ dataDir, settings, library, browse, titles, streams, version, ...shareOpts });
 
   await Promise.all([engine.start(), server.listen()]);
+  // Sharing to TVs starts in the background; Settings turns it on and off.
+  share.apply();
 
   search.setSink((searchId, progress) => send('search-progress', { searchId, progress }));
   library.on('library-changed', () => send('library-changed', null));
@@ -79,9 +84,13 @@ export async function createCore({ dataDir, defaultDownloadDir, send, version = 
   streams.onStopped = (streamId, reason) => send('stream-stopped', { streamId, reason });
   engine.on('removed', (entry) => streams.stopEntry(entry));
   // The window keeps its own copy of the settings; a change from anywhere reaches it.
-  settings.on('change', () => send('settings-changed', settings.view()));
+  settings.on('change', (_now, _before, changed) => {
+    send('settings-changed', settings.view());
+    if (changed.includes('network.shareOnLan')) share.apply();
+  });
+  share.on('status', () => share.status().then((status) => send('share-status', status)));
 
-  const ctx = { engine, server, streams, search, preloader, prefetch, library, downloads, settings, cache, downloadDir, browse, titles, metadata, media };
+  const ctx = { engine, server, streams, search, preloader, prefetch, library, downloads, settings, cache, downloadDir, browse, titles, metadata, media, share };
 
   ctx.startBackground = () => {
     downloads.start();
@@ -105,6 +114,7 @@ export async function createCore({ dataDir, defaultDownloadDir, send, version = 
       (async () => {
         await prefetch.reset();
         await preloader.destroy();
+        await share.close();
         await server.close();
         await engine.destroy();
         await releaseNative();

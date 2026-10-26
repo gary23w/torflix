@@ -283,6 +283,7 @@ export function createCommands(ctx, platform) {
   });
   handle('chooseDownloadDir', () => platform.chooseFolder({ title: 'Choose the download folder', create: true }));
   handle('cacheUsage', () => cache.usage());
+  handle('shareStatus', () => ctx.share.status());
   handle('clearCache', () => cache.clear());
   handle('openDownloadDir', () => platform.openPath(downloadDir));
   handle('openLink', async (url) => {

@@ -90,6 +90,7 @@ async function main() {
     send,
     version: app.getVersion(),
     platform: 'desktop',
+    share: { iconPath: path.join(ROOT, 'assets', 'icon.png') },
   });
   win = createWindow();
   ctx.win = win;
