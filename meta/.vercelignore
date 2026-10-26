@@ -1,0 +1,2 @@
+# lib/ is generated but deployed (it is only kept out of git).
+.vercel

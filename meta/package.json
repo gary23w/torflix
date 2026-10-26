@@ -1,0 +1,10 @@
+{
+  "name": "torflix-meta",
+  "private": true,
+  "description": "Title information for Torflix (films, series, seasons, episodes) from Wikipedia, Wikidata and TVmaze, cached for every user by Vercel's CDN.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  }
+}

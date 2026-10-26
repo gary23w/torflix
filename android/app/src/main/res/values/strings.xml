@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<resources>
+    <string name="app_name">Torflix</string>
+    <string name="starting">Starting Torflix…</string>
+    <string name="start_timeout">Torflix\'s engine did not start.</string>
+    <string name="no_engine">This build of Torflix has no engine for this TV\'s processor (%1$s). Install the APK for its processor.</string>
+    <string name="engine_failed">Torflix\'s engine keeps stopping.</string>
+    <string name="retry_hint">Press OK to try again, or Back to leave.</string>
+    <string name="no_browser">This TV has no web browser to open the link with.</string>
+
+    <!-- Updating itself (Updater, UpdateScreen). -->
+    <string name="update_title">Updating Torflix</string>
+    <string name="update_versions">%1$s  →  %2$s</string>
+    <string name="update_downloading">Downloading version %1$s.\nTorflix then closes to install it. Open it again from the home screen.</string>
+    <string name="update_amount">%1$s of %2$s</string>
+    <string name="update_installing">Installing version %1$s</string>
+    <string name="update_confirm">Confirm on the system\'s screen to finish updating to version %1$s.</string>
+    <string name="update_later_hint">Press Back to update later.</string>
+    <string name="update_confirm_hint">Press OK to install, or Back to update later.</string>
+    <string name="update_permission_title">Torflix %1$s is out</string>
+    <string name="update_permission">To update itself, Torflix needs your OK to install apps. Press OK to open that setting, turn it on for Torflix, then come back.</string>
+    <string name="update_permission_hint">Press OK to open the setting, or Back to update later.</string>
+    <string name="update_failed_title">The update did not finish</string>
+    <string name="update_failed_hint">Press OK to go on.</string>
+    <string name="update_download_failed">The new version could not be downloaded. Torflix will try again the next time it starts.</string>
+    <string name="update_cancelled">The update was cancelled. Torflix will offer it again the next time it starts.</string>
+    <string name="update_conflict">The new version is signed with a different key than the Torflix on this TV, so it cannot replace it.</string>
+    <string name="update_incompatible">The new version does not run on this TV.</string>
+    <string name="update_storage">This TV does not have enough free space for the new version.</string>
+    <string name="update_install_failed">The new version could not be installed. Torflix will try again the next time it starts.</string>
+    <string name="update_done">Torflix is updated to version %1$s.</string>
+</resources>

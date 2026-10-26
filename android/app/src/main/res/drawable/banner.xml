@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
+<!-- The TV launcher's banner: the app icon on the app's background. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/background" />
+            <size android:width="320dp" android:height="180dp" />
+        </shape>
+    </item>
+    <item
+        android:width="120dp"
+        android:height="120dp"
+        android:drawable="@drawable/torflix_icon"
+        android:gravity="center" />
+</layer-list>

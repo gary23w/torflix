@@ -1,0 +1,6 @@
+# Copied from src/shared by tools/meta.mjs.
+lib/
+.vercel/
+
+.vercel
+.env*
