@@ -14,6 +14,7 @@ release download checksums. Windows builds are unsigned; macOS builds are not Ap
 | Chocolatey | `torflix.0.3.0.nupkg` is in the GitHub release. Gallery upload has not completed. |
 | Nix | This repository supplies a flake for x86_64 Linux. Run `nix run github:gary23w/torflix#torflix` once this change is merged. It uses Nixpkgs Electron 44, patches the packaged native modules, and includes FFmpeg. It is not a Nixpkgs catalog entry. |
 | Arch Linux | Build the recipe in `packaging/aur` with `makepkg -si` as a normal user. It repackages the checksum-verified Debian release. The recipe has not been uploaded to AUR. |
+| Snap | `packaging/snap/snapcraft.yaml` builds a strictly confined snap from the checksum-verified Linux release. Store publication requires a publisher account and name registration. |
 | Debian / Ubuntu | Download the `.deb` release, then `sudo apt install ./Torflix-0.3.0-linux-amd64.deb`. No hosted apt repository is configured. |
 | Fedora | Download the `.rpm` release, then `sudo dnf install ./Torflix-0.3.0-linux-x86_64.rpm`. No hosted RPM repository is configured. |
 
@@ -35,8 +36,18 @@ so no Flathub request has been made. Snap Store and AUR publication require publ
    Use publisher credentials through each service's supported login process.
 6. Run the package manager validation workflow. It builds the Nix derivation and Arch package
    on Linux, generates `.SRCINFO` with `makepkg`, and checks the Homebrew install on macOS.
+   The Snap workflow builds separately and verifies strict confinement and the Electron sandbox.
 7. Update the SourceForge release mirror and platform default downloads.
 
 Native module binaries must match the target operating system and CPU. Desktop release builds
 run on their target hosts; a Windows `node_modules` tree cannot produce working Linux/macOS
 native modules. Do not disable Electron's sandbox or Gatekeeper to work around packaging errors.
+
+## Download directories
+
+SourceForge is live. Softonic and SnapFiles have received submissions for editorial review.
+FileHorse is prepared but its CAPTCHA must complete before the request can be sent. FossHub's
+prepared contact form is blocked by its spam-protection widget. Softpedia requires declaring
+that no application code was written by AI, which cannot be made for this project. FileHippo
+does not accept publisher submissions. MajorGeeks requires a personal submission and does not
+accept automated submissions.

@@ -1,0 +1,39 @@
+name: torflix
+base: core24
+version: '0.3.0'
+summary: Torrent video streaming and downloads
+description: |
+  Torflix opens magnet links and torrent files and plays video while its pieces
+  download. Includes subtitles, a resume library, bandwidth and cache controls.
+  Only access content you are authorized to download or stream.
+grade: stable
+confinement: strict
+license: MIT OR Apache-2.0
+contact: info@garrettstimpson.ca
+website: https://github.com/gary23w/torflix
+issues: https://github.com/gary23w/torflix/issues
+
+plugs:
+  browser-support:
+    interface: browser-support
+    allow-sandbox: true
+
+apps:
+  torflix:
+    command: app/torflix
+    desktop: app/torflix.desktop
+    extensions: [gnome]
+    plugs: [home, network, network-bind, audio-playback, browser-support]
+
+parts:
+  torflix:
+    plugin: nil
+    source: https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-linux-x86_64.AppImage
+    source-type: file
+    source-checksum: sha256/88ced61b83456d1c5beb57b557ab8a46b27a765ace1e315c3a27a455a759a68c
+    stage-packages: [ffmpeg, libnss3, libnspr4, libasound2t64]
+    override-build: |
+      chmod +x Torflix-0.3.0-linux-x86_64.AppImage
+      ./Torflix-0.3.0-linux-x86_64.AppImage --appimage-extract
+      mkdir -p "$CRAFT_PART_INSTALL/app"
+      cp -a squashfs-root/. "$CRAFT_PART_INSTALL/app/"

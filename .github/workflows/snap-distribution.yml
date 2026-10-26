@@ -1,0 +1,46 @@
+name: Snap distribution build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/additional-distribution, main]
+    paths:
+      - .github/workflows/snap-distribution.yml
+      - packaging/snap/**
+
+permissions:
+  contents: read
+
+jobs:
+  snap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: snapcore/action-build@v1
+        id: build
+        with:
+          path: packaging/snap
+      - name: Inspect confinement and sandbox configuration
+        env:
+          SNAP_FILE: ${{ steps.build.outputs.snap }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends squashfs-tools python3-yaml
+          unsquashfs -cat "$SNAP_FILE" meta/snap.yaml > snap-metadata.yaml
+          python3 - <<'PY'
+          import yaml
+          with open('snap-metadata.yaml') as source:
+              package = yaml.safe_load(source)
+          assert package['confinement'] == 'strict'
+          assert package['plugs']['browser-support']['allow-sandbox'] is True
+          assert '--no-sandbox' not in package['apps']['torflix']['command']
+          print('Strict confinement and Electron sandbox configuration verified')
+          PY
+          sha256sum "$SNAP_FILE" > "$SNAP_FILE.sha256"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: snap-package
+          path: |
+            ${{ steps.build.outputs.snap }}
+            ${{ steps.build.outputs.snap }}.sha256
