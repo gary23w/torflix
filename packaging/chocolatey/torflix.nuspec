@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>torflix</id>
+    <version>0.3.0</version>
+    <title>Torflix</title>
+    <authors>Garrett Stimpson; The TorrentPlayer Contributors</authors>
+    <owners>gary23w</owners>
+    <projectUrl>https://github.com/gary23w/torflix</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/gary23w/torflix/v0.3.0/assets/icon.png</iconUrl>
+    <licenseUrl>https://github.com/gary23w/torflix#license</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <projectSourceUrl>https://github.com/gary23w/torflix</projectSourceUrl>
+    <bugTrackerUrl>https://github.com/gary23w/torflix/issues</bugTrackerUrl>
+    <docsUrl>https://github.com/gary23w/torflix#readme</docsUrl>
+    <tags>torflix torrent bittorrent streaming video player</tags>
+    <summary>Torrent streaming and downloads with a built-in video player.</summary>
+    <description>Torflix plays torrent videos as they download. Open magnet links and torrent files, browse and search, use subtitles, and resume from your library. Includes bandwidth and cache controls. FFmpeg is optional for desktop Dolby and DTS audio. Only access content you are authorized to download or stream.</description>
+    <releaseNotes>https://github.com/gary23w/torflix/releases/tag/v0.3.0</releaseNotes>
+  </metadata>
+  <files><file src="tools/**" target="tools" /></files>
+</package>
