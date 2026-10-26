@@ -642,6 +642,9 @@ api.on('stream-stopped', ({ streamId, reason }) => {
   showIdleStage(reason === 'removed' ? 'Its torrent was removed, so playback stopped.' : 'Playback stopped.');
 });
 
+// Sharing to TVs started, stopped or ran into a problem.
+api.on('share-status', (status) => settingsView.setShare(status));
+
 // Settings changed outside the Settings page (it updates this copy itself as you edit).
 api.on('settings-changed', (view) => {
   state.settings = view;
