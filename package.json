@@ -4,6 +4,16 @@
   "version": "0.3.0",
   "description": "Torflix for Android TV and the desktop: browse what performs best on the swarm and stream it. Built on the design of TorrentPlayer.",
   "homepage": "https://github.com/gary23w/torflix",
+  "author": {
+    "name": "Garrett Stimpson",
+    "email": "info@garrettstimpson.ca",
+    "url": "https://garrettstimpson.ca"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gary23w/torflix.git"
+  },
+  "bugs": "https://github.com/gary23w/torflix/issues",
   "license": "MIT OR Apache-2.0",
   "private": true,
   "type": "module",
@@ -16,6 +26,8 @@
     "smoke": "electron . --smoke",
     "test": "node --test \"test/**/*.test.js\"",
     "dist": "electron-builder",
+    "dist:desktop": "node tools/distribution/build-desktop.mjs",
+    "distribution:generate": "node tools/distribution/generate.mjs",
     "android:build": "node tools/android/build.mjs",
     "android:release": "node tools/android/release.mjs"
   },
