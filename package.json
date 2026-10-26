@@ -35,6 +35,8 @@
       "src/**/*",
       "!src/android/**/*",
       "assets/**/*",
+      "!assets/demo/**/*",
+      "!assets/screens/**/*",
       "package.json"
     ],
     "directories": {
