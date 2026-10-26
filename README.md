@@ -1,16 +1,36 @@
 # Torflix
 
-**Torflix for Android TV: browse what the swarm is watching, press Play on the remote, and it
-streams.** A streaming-service front for torrents: rows of the most seeded films and series on
-the public index, with posters and information, a page for every title with its seasons,
-episodes and Resume, and the TV's own player. The whole torrent engine runs on the TV box
-itself: no computer, no server, no account, no keys.
+**Torflix is a cross-platform torrent streaming app, growing toward support for all platforms.**
+Browse what the swarm is watching, choose a film or episode, and press Play. A streaming-service
+front for torrents: rows of the most seeded films and series on the public index, with posters
+and information, a page for every title with its seasons, episodes and Resume, and playback
+suited to your device. The whole torrent engine runs locally on the device you watch on: no
+separate server, no account, no keys.
 
 <p align="center">
-  <a href="https://github.com/gary23w/torflix/releases/latest"><img src="https://img.shields.io/github/v/release/gary23w/torflix?label=Download%20for%20Android%20TV&color=e50914&style=for-the-badge" alt="Download Torflix for Android TV"></a>
+  <a href="https://github.com/gary23w/torflix/releases/latest"><img src="https://img.shields.io/github/v/release/gary23w/torflix?label=Download%20Torflix&color=e50914&style=for-the-badge" alt="Download Torflix"></a>
   <br>
-  <sub>One APK per processor family, plus the desktop app for Windows, macOS and Linux. <a href="#install-it-on-a-tv">How to install</a>.</sub>
+  <sub>Windows, macOS, Linux, Android TV and Google TV. <a href="#platforms">Choose your platform</a>.</sub>
 </p>
+
+## Platforms
+
+Torflix currently supports Windows, macOS, Linux, Android TV and Google TV. The goal is to bring
+Torflix to all platforms, with the same browsing, search and streaming experience adapted to
+each device's controls and player. Support for additional platforms is still ahead.
+
+| Platform | Current app | Installation |
+| --- | --- | --- |
+| Windows | Desktop app for x64 and arm64 | [Install on a computer](#install-it-on-a-computer) |
+| macOS | Desktop app for Apple silicon and Intel; macOS 12 or newer | [Install on a computer](#install-it-on-a-computer) |
+| Linux | Desktop app for x64 and arm64 | [Install on a computer](#install-it-on-a-computer) |
+| Android TV / Google TV | TV app for Android 7.0 or newer, including Android TV boxes | [Install on a TV](#install-it-on-a-tv) |
+
+Both the desktop and TV apps share the same torrent engine, Browse, title pages, search and
+resume features. Desktop playback uses mouse and keyboard controls; the TV app uses a remote
+and a native player.
+
+## Android TV and Google TV
 
 <table>
   <tr>
@@ -23,7 +43,7 @@ itself: no computer, no server, no account, no keys.
   </tr>
 </table>
 
-## What it does on a TV
+### The TV experience
 
 - **Browse.** A hero and rows of posters, the way a streaming service lays them out:
   *Continue watching*, *Top films on the swarm* and *Top series on the swarm* (the first ten
@@ -51,7 +71,7 @@ itself: no computer, no server, no account, no keys.
 - **Search** dozens of public indexers at once, with one Best pick ranked for watching.
 - **Updates itself** from this repository's releases (below).
 
-## Install it on a TV
+### Install it on a TV
 
 You need a TV or TV box with Android 7.0 or newer (Android TV, Google TV, or a plain Android
 box). Download the APK for its processor family from the
@@ -94,7 +114,7 @@ apps (Android 8 and later), and Android usually asks to confirm each update. Bac
 update off until the next start. Android 10 and later don't let an app reopen itself after it
 installs, so Torflix says it will close, and on the next start it says it was updated.
 
-## On a computer
+## Desktop: Windows, macOS and Linux
 
 The same app runs on the desktop (Electron), with a mouse-and-keyboard player: keyboard
 controls, a seek bar that shows what is downloaded, a live piece map (D), subtitles from the
