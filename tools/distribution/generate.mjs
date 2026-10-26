@@ -2,6 +2,7 @@
 // Generate only packages whose downloads are already present in the GitHub release.
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '../..');
@@ -129,10 +130,81 @@ $packageArgs = @{
 }
 Install-ChocolateyPackage @packageArgs
 `);
+
+if (release.assets.some(entry => entry.name === `Torflix-${version}-mac-arm64.dmg`) &&
+    release.assets.some(entry => entry.name === `Torflix-${version}-mac-x64.dmg`)) {
+  const arm = asset(`Torflix-${version}-mac-arm64.dmg`);
+  const intel = asset(`Torflix-${version}-mac-x64.dmg`);
+  await write('homebrew/torflix.rb', `cask "torflix" do
+  arch arm: "arm64", intel: "x64"
+
+  version "${version}"
+  sha256 arm:   "${arm.sha256}",
+         intel: "${intel.sha256}"
+
+  url "${homepage}/releases/download/v#{version}/Torflix-#{version}-mac-#{arch}.dmg"
+  name "Torflix"
+  desc "Torrent video streaming and downloads with a built-in player"
+  homepage "${homepage}"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  app "Torflix.app"
+end
+`);
+}
+
+if (release.assets.some(entry => entry.name === `Torflix-${version}-linux-x86_64.AppImage`)) {
+  const linux = asset(`Torflix-${version}-linux-x86_64.AppImage`);
+  await write('nix/release.json', JSON.stringify({ version, url: linux.url,
+    hash: `sha256-${Buffer.from(linux.sha256, 'hex').toString('base64')}` }, null, 2) + '\n');
+}
+
+if (release.assets.some(entry => entry.name === `Torflix-${version}-linux-amd64.deb`)) {
+  const deb = asset(`Torflix-${version}-linux-amd64.deb`);
+  const licenses = ['LICENSE-MIT', 'LICENSE-APACHE'];
+  const hashes = licenses.map(name => createHash('sha256')
+    .update(execFileSync('git', ['show', `v${version}:${name}`])).digest('hex'));
+  await write('aur/PKGBUILD', `# Maintainer: Garrett Stimpson <info@garrettstimpson.ca>
+pkgname=torflix-bin
+pkgver=${version}
+pkgrel=1
+pkgdesc='Torrent video streaming and downloads with a built-in player'
+arch=('x86_64')
+url='${homepage}'
+license=('MIT' 'Apache-2.0')
+depends=('alsa-lib' 'at-spi2-core' 'cairo' 'dbus' 'expat' 'gcc-libs' 'glib2' 'glibc' 'gtk3' 'libcups' 'libdrm' 'libx11' 'libxcb' 'libxcomposite' 'libxdamage' 'libxext' 'libxfixes' 'libxkbcommon' 'libxrandr' 'mesa' 'nspr' 'nss' 'pango')
+makedepends=('libarchive')
+optdepends=('ffmpeg: Dolby and DTS audio playback')
+provides=('torflix')
+conflicts=('torflix')
+options=('!strip' '!debug')
+source=("torflix-\${pkgver}.deb::${deb.url}"
+        "LICENSE-MIT::https://raw.githubusercontent.com/${repo}/v\${pkgver}/LICENSE-MIT"
+        "LICENSE-APACHE::https://raw.githubusercontent.com/${repo}/v\${pkgver}/LICENSE-APACHE")
+sha256sums=('${deb.sha256}'
+            '${hashes[0]}'
+            '${hashes[1]}')
+
+package() {
+  bsdtar -xf "$srcdir/torflix-\${pkgver}.deb" -C "$srcdir" data.tar.xz
+  bsdtar -xf "$srcdir/data.tar.xz" -C "$pkgdir"
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s /opt/Torflix/torflix "$pkgdir/usr/bin/torflix"
+  chmod 4755 "$pkgdir/opt/Torflix/chrome-sandbox"
+  install -Dm644 "$srcdir/LICENSE-MIT" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+  install -Dm644 "$srcdir/LICENSE-APACHE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+}
+`);
+}
+
 await write('listing.json', JSON.stringify({
   name: 'Torflix', version, publisher: 'Garrett Stimpson', contactEmail: pkg.author.email,
   homepage, source: homepage, support: `${homepage}/issues`, license: pkg.license,
   shortDescription: 'Torrent video streaming and downloads with a built-in player.',
-  platforms: ['Windows x64', 'Android TV 7.0+'],
+  platforms: ['Windows x64', 'macOS x64 / arm64', 'Linux x64', 'Android TV 7.0+'],
   downloads: release.assets.map(({ name, browser_download_url, digest, size }) => ({ name, url: browser_download_url, digest, size })),
 }, null, 2) + '\n');

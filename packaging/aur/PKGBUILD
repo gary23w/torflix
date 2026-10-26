@@ -1,0 +1,30 @@
+# Maintainer: Garrett Stimpson <info@garrettstimpson.ca>
+pkgname=torflix-bin
+pkgver=0.3.0
+pkgrel=1
+pkgdesc='Torrent video streaming and downloads with a built-in player'
+arch=('x86_64')
+url='https://github.com/gary23w/torflix'
+license=('MIT' 'Apache-2.0')
+depends=('alsa-lib' 'at-spi2-core' 'cairo' 'dbus' 'expat' 'gcc-libs' 'glib2' 'glibc' 'gtk3' 'libcups' 'libdrm' 'libx11' 'libxcb' 'libxcomposite' 'libxdamage' 'libxext' 'libxfixes' 'libxkbcommon' 'libxrandr' 'mesa' 'nspr' 'nss' 'pango')
+makedepends=('libarchive')
+optdepends=('ffmpeg: Dolby and DTS audio playback')
+provides=('torflix')
+conflicts=('torflix')
+options=('!strip' '!debug')
+source=("torflix-${pkgver}.deb::https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-linux-amd64.deb"
+        "LICENSE-MIT::https://raw.githubusercontent.com/gary23w/torflix/v${pkgver}/LICENSE-MIT"
+        "LICENSE-APACHE::https://raw.githubusercontent.com/gary23w/torflix/v${pkgver}/LICENSE-APACHE")
+sha256sums=('a25727d93dc155e010e69f771023e2fe366e6c966c0b2d0be8736b36f861ebbc'
+            'd6bb2fdbddb3aab00c963592d171ef7a19045cfe2575df36ae33e37c59bdb550'
+            'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30')
+
+package() {
+  bsdtar -xf "$srcdir/torflix-${pkgver}.deb" -C "$srcdir" data.tar.xz
+  bsdtar -xf "$srcdir/data.tar.xz" -C "$pkgdir"
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s /opt/Torflix/torflix "$pkgdir/usr/bin/torflix"
+  chmod 4755 "$pkgdir/opt/Torflix/chrome-sandbox"
+  install -Dm644 "$srcdir/LICENSE-MIT" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-MIT"
+  install -Dm644 "$srcdir/LICENSE-APACHE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE-APACHE"
+}

@@ -1,0 +1,62 @@
+name: Package manager validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/additional-distribution, main]
+    paths:
+      - .github/workflows/package-validation.yml
+      - flake.nix
+      - flake.lock
+      - packaging/nix/**
+      - packaging/aur/**
+      - packaging/homebrew/**
+
+permissions:
+  contents: read
+
+jobs:
+  nix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@31.11.3
+      - run: nix flake lock
+      - run: nix build -L .#torflix
+      - name: Verify package contents
+        run: |
+          test -x result/bin/torflix
+          test -s result/share/torflix/app.asar
+          test -s result/share/applications/torflix.desktop
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nix-lock
+          path: flake.lock
+  homebrew:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+      - run: ruby -c packaging/homebrew/torflix.rb
+      - run: brew install --cask gary23w/torflix/torflix
+      - name: Verify application bundle
+        run: |
+          test -x /Applications/Torflix.app/Contents/MacOS/Torflix
+          test -s /Applications/Torflix.app/Contents/Resources/app.asar
+  arch:
+    runs-on: ubuntu-24.04
+    container: archlinux:base-devel
+    steps:
+      - run: pacman -Syu --noconfirm git libarchive namcap
+      - uses: actions/checkout@v7
+      - name: Build package without installing it
+        run: |
+          useradd -m builder
+          chown -R builder:builder packaging/aur
+          su builder -c "cd '$GITHUB_WORKSPACE/packaging/aur' && makepkg --nodeps --noconfirm && makepkg --printsrcinfo > .SRCINFO"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: arch-package
+          path: |
+            packaging/aur/*.pkg.tar.zst
+            packaging/aur/.SRCINFO
+          include-hidden-files: true

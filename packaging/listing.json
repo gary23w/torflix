@@ -10,14 +10,16 @@
   "shortDescription": "Torrent video streaming and downloads with a built-in player.",
   "platforms": [
     "Windows x64",
+    "macOS x64 / arm64",
+    "Linux x64",
     "Android TV 7.0+"
   ],
   "downloads": [
     {
       "name": "SHA256SUMS",
       "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/SHA256SUMS",
-      "digest": "sha256:ba3ba8d92b7e4bc0e10038bdd3adf17e9fb39ccbf941d058da7acaef7b19b4ad",
-      "size": 459
+      "digest": "sha256:150994b50567b0ffe130654142a84a90fba211fb515cacfd49fb84a07ca5283b",
+      "size": 1126
     },
     {
       "name": "torflix-0.3.0-arm64-v8a.apk",
@@ -30,6 +32,48 @@
       "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/torflix-0.3.0-armeabi-v7a.apk",
       "digest": "sha256:bb5c388fe96ad2585dd44c301943745ca300608ddc1d5c6cd90c6310a4ef54f3",
       "size": 37755749
+    },
+    {
+      "name": "Torflix-0.3.0-linux-amd64.deb",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-linux-amd64.deb",
+      "digest": "sha256:a25727d93dc155e010e69f771023e2fe366e6c966c0b2d0be8736b36f861ebbc",
+      "size": 107942392
+    },
+    {
+      "name": "Torflix-0.3.0-linux-x86_64.AppImage",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-linux-x86_64.AppImage",
+      "digest": "sha256:88ced61b83456d1c5beb57b557ab8a46b27a765ace1e315c3a27a455a759a68c",
+      "size": 137732668
+    },
+    {
+      "name": "Torflix-0.3.0-linux-x86_64.rpm",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-linux-x86_64.rpm",
+      "digest": "sha256:2b5d69cfbd82c90f66b189045b2db7ee2a94f83a209d9329845a9df570cf6b70",
+      "size": 96333817
+    },
+    {
+      "name": "Torflix-0.3.0-mac-arm64.dmg",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-mac-arm64.dmg",
+      "digest": "sha256:412057ed3151ac3237f1b9293957705500a3d46c677eaae4bb4ca36865e636bc",
+      "size": 131609833
+    },
+    {
+      "name": "Torflix-0.3.0-mac-arm64.zip",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-mac-arm64.zip",
+      "digest": "sha256:a335590f61dffa73e8709a7e1262d74614a54a7c4a12e7a2cc0432edee0658b9",
+      "size": 131746091
+    },
+    {
+      "name": "Torflix-0.3.0-mac-x64.dmg",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-mac-x64.dmg",
+      "digest": "sha256:7590792f9f1d7916e84249a9f3124f219eaaf7ddca49508c199b043b545dbebc",
+      "size": 135531731
+    },
+    {
+      "name": "Torflix-0.3.0-mac-x64.zip",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-0.3.0-mac-x64.zip",
+      "digest": "sha256:f5ee707781d8ce9619dd96ca99b69ebd3046bd584d31488a37a801e8cb13fbd3",
+      "size": 135745900
     },
     {
       "name": "Torflix-0.3.0-win.zip",
@@ -48,6 +92,12 @@
       "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/Torflix-Setup-0.3.0.exe",
       "digest": "sha256:d90067f146908a67546fbbf2140db3888f7bb23fadd105beda407d3322ae5933",
       "size": 119457395
+    },
+    {
+      "name": "torflix.0.3.0.nupkg",
+      "url": "https://github.com/gary23w/torflix/releases/download/v0.3.0/torflix.0.3.0.nupkg",
+      "digest": "sha256:dd66086efd5173133bf5a35fea814932a37a7b32a620b37a09ef4fd51b6dd5f4",
+      "size": 2749
     }
   ]
 }

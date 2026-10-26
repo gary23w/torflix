@@ -9,7 +9,7 @@ itself: no computer, no server, no account, no keys.
 <p align="center">
   <a href="https://github.com/gary23w/torflix/releases/latest"><img src="https://img.shields.io/github/v/release/gary23w/torflix?label=Download%20for%20Android%20TV&color=e50914&style=for-the-badge" alt="Download Torflix for Android TV"></a>
   <br>
-  <sub>One APK per processor family, plus the desktop app for Windows. <a href="#install-it-on-a-tv">How to install</a>.</sub>
+  <sub>One APK per processor family, plus Windows, macOS and Linux downloads. <a href="#install-it-on-a-tv">How to install</a>.</sub>
 </p>
 
 <table>
@@ -107,8 +107,28 @@ torrent or a file, and the same Browse, title pages and search.
   <em>Sintel</em> and <em>Tears of Steel</em> © Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</sub>
 </p>
 
-Each release has a Windows installer (`Torflix-Setup-<version>.exe`). It is not code-signed, so
-Windows SmartScreen asks first: More info → Run anyway. On macOS and Linux, run it from source:
+The [latest release](https://github.com/gary23w/torflix/releases/latest) has a Windows installer
+and portable ZIP, macOS disk images for Intel and Apple Silicon, and Linux AppImage, Debian
+and RPM packages. Downloads are also mirrored on [SourceForge](https://sourceforge.net/projects/torflix/).
+The Windows installer is unsigned, and the macOS app is not Apple notarized; the operating
+system may block it or ask for approval.
+
+On Windows with [Scoop](https://scoop.sh/):
+
+```powershell
+scoop bucket add torflix https://github.com/gary23w/scoop-torflix
+scoop install torflix/torflix
+```
+
+On macOS with [Homebrew](https://brew.sh/):
+
+```bash
+brew tap gary23w/torflix
+brew install --cask torflix
+```
+
+See [distribution packages](packaging/README.md) for Nix, Arch, checksums, and submission status.
+To run from source:
 
 ```bash
 npm install
