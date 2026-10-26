@@ -27,7 +27,6 @@
     "test": "node --test \"test/**/*.test.js\"",
     "dist": "electron-builder",
     "dist:desktop": "node tools/distribution/build-desktop.mjs",
-    "distribution:generate": "node tools/distribution/generate.mjs",
     "android:build": "node tools/android/build.mjs",
     "android:release": "node tools/android/release.mjs"
   },
