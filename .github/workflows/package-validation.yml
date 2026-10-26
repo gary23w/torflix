@@ -28,6 +28,10 @@ jobs:
           test -x result/bin/torflix
           test -s result/share/torflix/app.asar
           test -s result/share/applications/torflix.desktop
+      - name: Load the native torrent modules with the packaged Electron runtime
+        run: |
+          electron="$(nix eval --raw .#torflix.electron)/bin/electron"
+          ELECTRON_RUN_AS_NODE=1 "$electron" -e "for (const addon of ['node-datachannel/build/Release/node_datachannel.node', 'utp-native/prebuilds/linux-x64/node.napi.node']) require(process.cwd() + '/result/share/torflix/app.asar.unpacked/node_modules/' + addon); console.log('Native torrent modules loaded');"
       - uses: actions/upload-artifact@v7
         with:
           name: nix-lock

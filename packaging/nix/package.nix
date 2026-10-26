@@ -15,6 +15,7 @@ in stdenv.mkDerivation {
   buildInputs = [ stdenv.cc.cc.lib openssl ];
   dontBuild = true;
   dontStrip = true;
+  passthru.electron = electron_44-bin;
 
   desktopItems = [ (makeDesktopItem {
     name = "torflix";
@@ -31,6 +32,8 @@ in stdenv.mkDerivation {
     mkdir -p "$out/share/torflix" "$out/bin"
     cp resources/app.asar "$out/share/torflix/"
     cp -r resources/app.asar.unpacked "$out/share/torflix/"
+    # This package targets glibc; the alternate musl binary is never selected here.
+    rm "$out/share/torflix/app.asar.unpacked/node_modules/utf-8-validate/prebuilds/linux-x64/utf-8-validate.musl.node"
     install -Dm644 .DirIcon "$out/share/icons/hicolor/512x512/apps/torflix.png"
     install -Dm644 ${../../LICENSE-MIT} "$out/share/licenses/torflix/LICENSE-MIT"
     install -Dm644 ${../../LICENSE-APACHE} "$out/share/licenses/torflix/LICENSE-APACHE"
