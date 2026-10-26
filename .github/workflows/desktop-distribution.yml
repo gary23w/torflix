@@ -63,6 +63,9 @@ jobs:
         run: node --input-type=module -e "await import('webtorrent'); console.log('WebTorrent native modules loaded')"
       - name: Build native desktop packages
         run: npm run dist:desktop
+        env:
+          # The Mac signature is ad-hoc (no certificate or secret), so pull requests sign too.
+          CSC_FOR_PULL_REQUEST: 'true'
       - name: Install and start each package
         run: node tools/distribution/launch-test.mjs dist launch-shots
       - uses: actions/upload-artifact@v7
