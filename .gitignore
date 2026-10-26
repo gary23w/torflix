@@ -9,3 +9,16 @@ android/app/src/main/ffmpeg/
 .env*
 *.keystore
 *.jks
+
+# Distribution channel material stays local, outside version control.
+/packaging/
+/distribution/
+/submissions/
+/fastlane/
+/flake.nix
+/flake.lock
+/tools/distribution/generate.mjs
+/tools/distribution/publish-channels.mjs
+/.github/workflows/packages.yml
+/.github/workflows/package-validation.yml
+/.github/workflows/snap-distribution.yml

@@ -9,7 +9,7 @@ itself: no computer, no server, no account, no keys.
 <p align="center">
   <a href="https://github.com/gary23w/torflix/releases/latest"><img src="https://img.shields.io/github/v/release/gary23w/torflix?label=Download%20for%20Android%20TV&color=e50914&style=for-the-badge" alt="Download Torflix for Android TV"></a>
   <br>
-  <sub>One APK per processor family, plus the desktop app for Windows. <a href="#install-it-on-a-tv">How to install</a>.</sub>
+  <sub>One APK per processor family, plus the desktop app for Windows, macOS and Linux. <a href="#install-it-on-a-tv">How to install</a>.</sub>
 </p>
 
 <table>
@@ -107,8 +107,33 @@ torrent or a file, and the same Browse, title pages and search.
   <em>Sintel</em> and <em>Tears of Steel</em> © Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</sub>
 </p>
 
-Each release has a Windows installer (`Torflix-Setup-<version>.exe`). It is not code-signed, so
-Windows SmartScreen asks first: More info → Run anyway. On macOS and Linux, run it from source:
+### Install it on a computer
+
+Desktop builds support Windows, macOS 12 or newer, and Linux, each for x64 and arm64.
+Download the available packages from the [latest release](https://github.com/gary23w/torflix/releases/latest).
+
+**Windows**: run the installer:
+`Torflix-Setup-<version>.exe` (x64) or `Torflix-Setup-<version>-arm64.exe`. It is not
+code-signed, so SmartScreen asks first: More info → Run anyway.
+
+**macOS**: open the `.dmg` (`mac-arm64` for Apple silicon, `mac-x64` for Intel) and drag Torflix to
+Applications. Torflix is not notarized by Apple, so macOS blocks its first start: open System
+Settings → Privacy & Security and click Open Anyway.
+
+**Linux**: the `.deb` for Debian and Ubuntu, the `.rpm` for Fedora and openSUSE, or the
+`.AppImage` for anything else (`amd64`/`x86_64` or `arm64`/`aarch64`):
+
+```bash
+sudo apt install ./Torflix-<version>-linux-amd64.deb
+```
+
+```bash
+sudo dnf install ./Torflix-<version>-linux-x86_64.rpm
+```
+
+`SHA256SUMS` in each release lists every file's checksum.
+
+### Run it from source
 
 ```bash
 npm install
@@ -125,6 +150,7 @@ You need Node.js 22 or newer.
 | `npm test`           | Unit tests: release-name parsing, title grouping, ranking, subtitles, queue, audio tracks, piece priorities, resume data, Play rules, other copies, title data, cache limits. |
 | `npm run smoke`      | Starts the real app, loads Browse, runs a search, streams and plays an open torrent, and writes screenshots to `smoke/`. Uses its own temporary data folder. |
 | `npm run dist`       | Builds installers with electron-builder (NSIS on Windows, DMG on macOS, AppImage/deb on Linux). |
+| `npm run dist:desktop` | Builds this machine's release packages, as CI does: installer and zip on Windows, DMG and zip on macOS, AppImage, deb and rpm on Linux. |
 | `node tools/make-icon.mjs` | Redraws the app icon (PNG, ICO, ICNS) from code.                                         |
 
 Pass `--dev` (or set `TORRENTPLAYER_DEV=1`) for the developer tools (F12) and engine logging.
@@ -262,7 +288,15 @@ the one every TV asks for. Raise the version in `package.json`, then build the A
 npm run android:release -- --publish
 ```
 
-Without `--publish` it only builds them. Then add the desktop installers to the same release.
+Without `--publish` it only builds them. Then add the desktop packages to the same release: the
+*Desktop distribution builds* workflow builds Windows, macOS and Linux on x64 and arm64
+runners, installs and starts each package, and uploads them. It never replaces a file the
+release already has, unless its *replace* input names it.
+
+```bash
+gh workflow run desktop-distribution.yml
+```
+
 Releases are signed with the same key as the test builds (`~/.android/debug.keystore` on the
 machine that builds them): a TV takes an update only from the key its Torflix was installed
 with, so keep that file. To try an update without publishing anything, build an older version
