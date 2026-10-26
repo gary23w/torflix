@@ -2,14 +2,31 @@ name: Desktop distribution builds
 
 on:
   workflow_dispatch:
+    inputs:
+      replace:
+        description: Regular expression of published file names to replace (empty keeps every published file)
+        required: false
+        default: ''
   push:
-    branches: [main, codex/distribution-channels]
+    branches: [main]
     paths:
       - .github/workflows/desktop-distribution.yml
       - tools/distribution/build-desktop.mjs
+      - tools/distribution/launch-test.mjs
+      - tools/distribution/upload-release.mjs
+  pull_request:
+    paths:
+      - .github/workflows/desktop-distribution.yml
+      - tools/distribution/**
+      - package.json
 
 permissions:
   contents: read
+
+# One run at a time adds files to a release.
+concurrency:
+  group: desktop-distribution-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -17,31 +34,49 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - os: windows-2025
+            artifact: win-x64
+          - os: windows-11-arm
+            artifact: win-arm64
           - os: ubuntu-24.04
             artifact: linux-x64
+          - os: ubuntu-24.04-arm
+            artifact: linux-arm64
           - os: macos-15-intel
             artifact: mac-x64
           - os: macos-15
             artifact: mac-arm64
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
+      - name: Linux packaging and display tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends rpm xvfb
       - run: npm ci
       - run: npm test
       - name: Verify native torrent module
         run: node --input-type=module -e "await import('webtorrent'); console.log('WebTorrent native modules loaded')"
       - name: Build native desktop packages
         run: npm run dist:desktop
+      - name: Install and start each package
+        run: node tools/distribution/launch-test.mjs dist launch-shots
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: launch-shots-${{ matrix.artifact }}
+          path: launch-shots
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.artifact }}
           if-no-files-found: error
           path: |
+            dist/*.exe
             dist/*.AppImage
             dist/*.deb
             dist/*.rpm
@@ -50,6 +85,7 @@ jobs:
 
   publish:
     needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -63,4 +99,5 @@ jobs:
       - name: Add packages to the existing version's release
         env:
           GH_TOKEN: ${{ github.token }}
+          TORFLIX_REPLACE: ${{ inputs.replace }}
         run: node tools/distribution/upload-release.mjs dist/release

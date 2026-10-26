@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-// Add artifacts without ever replacing an existing application binary.
+// Add artifacts to the version's release. A published binary is kept, never replaced, unless
+// its name matches TORFLIX_REPLACE (a regular expression), for swapping out a broken build.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -10,23 +11,28 @@ const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'
 const repo = 'gary23w/torflix';
 const tag = `v${pkg.version}`;
 const directory = path.resolve(process.argv[2] || path.join(root, 'dist/release'));
+const replace = process.env.TORFLIX_REPLACE ? new RegExp(process.env.TORFLIX_REPLACE) : null;
 const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
 const getRelease = () => JSON.parse(gh('api', `repos/${repo}/releases/tags/${tag}`));
 const initial = getRelease();
 
 for (const name of (await fs.readdir(directory)).sort()) {
-  if (!/\.(?:zip|dmg|deb|rpm|AppImage)$/.test(name)) continue;
+  if (!/\.(?:exe|zip|dmg|deb|rpm|AppImage)$/.test(name)) continue;
   const file = path.join(directory, name);
   if (!(await fs.stat(file)).isFile()) continue;
   const sha = createHash('sha256').update(await fs.readFile(file)).digest('hex');
   const existing = initial.assets.find(asset => asset.name === name);
-  if (existing) {
-    if (existing.digest !== `sha256:${sha}`) throw new Error(`Refusing to replace existing release asset: ${name}`);
+  if (existing?.digest === `sha256:${sha}`) {
     console.log(`Already published, hash matches: ${name}`);
     continue;
   }
-  gh('release', 'upload', tag, file, '--repo', repo);
-  console.log(`Published ${name} sha256:${sha}`);
+  if (existing && !replace?.test(name)) {
+    // Builds are not byte-for-byte reproducible, so a rebuild differs from what was published.
+    console.log(`Kept the published ${name} (this build differs; TORFLIX_REPLACE replaces it)`);
+    continue;
+  }
+  gh('release', 'upload', tag, file, '--repo', repo, ...(existing ? ['--clobber'] : []));
+  console.log(`${existing ? 'Replaced' : 'Published'} ${name} sha256:${sha}`);
 }
 
 const release = getRelease();
