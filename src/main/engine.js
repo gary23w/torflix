@@ -165,7 +165,7 @@ export class Engine extends EventEmitter {
       lsd: true,
       utPex: true,
       tracker: { wrtc: false },
-      userAgent: 'Torflix/0.3.0',
+      userAgent: 'Torflix/0.3.1',
     });
     this.client = client;
     client.on('error', (err) => this.#onClientError(client, err));
@@ -583,7 +583,7 @@ export async function resolveRemote(url) {
       res = await fetch(current, {
         redirect: 'manual',
         signal: AbortSignal.timeout(20_000),
-        headers: { Accept: 'application/x-bittorrent, */*', 'User-Agent': 'Torflix/0.3.0' },
+        headers: { Accept: 'application/x-bittorrent, */*', 'User-Agent': 'Torflix/0.3.1' },
       });
     } catch (err) {
       throw new EngineError('fetch', 'The .torrent file could not be fetched from that link.');
