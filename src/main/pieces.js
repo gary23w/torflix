@@ -105,9 +105,10 @@ export function focusPieces(torrent) {
  * other selections, which would lift a whole file to its priority, and it is removed exactly.
  * WebTorrent serves equal priorities in turn, so the playhead must be above the rest of the
  * file, or a seek waits while bandwidth goes to pieces nobody asked for. Returns null when
- * every piece of the run is already there.
+ * every piece of the run is already there. `critical: false` leaves slow peers their blocks of
+ * it (for a run wanted soon, not waited on).
  */
-export function addFocus(torrent, from, to, priority = FOCUS_PRIORITY) {
+export function addFocus(torrent, from, to, priority = FOCUS_PRIORITY, { critical = true } = {}) {
   if (!torrent || torrent.destroyed || !torrent.ready || !torrent._selections || !torrent.bitfield) return null;
   const last = torrent.pieces.length - 1;
   const a = Math.max(0, Math.min(from, last));
@@ -119,7 +120,7 @@ export function addFocus(torrent, from, to, priority = FOCUS_PRIORITY) {
   try {
     torrent._selections.insert(item);
     torrent._selections.sort((x, y) => y.priority - x.priority);
-    torrent.critical(a, b);
+    if (critical) torrent.critical(a, b);
   } catch {
     return null;
   }

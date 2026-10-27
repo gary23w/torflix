@@ -9,6 +9,7 @@ import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileKind, sortFiles } from '../shared/files.js';
+import { dialWide, PENDING_CONNECTS, quickConnect, quickKeys, quickRamp } from './swarm.js';
 
 /** Public trackers added to magnet links so sparse links still find peers. */
 const EXTRA_TRACKERS = [
@@ -133,8 +134,15 @@ export class Engine extends EventEmitter {
   }
 
   async start() {
-    const [{ default: WebTorrent }, pt, { default: Peer }] = await Promise.all([import('webtorrent'), import('parse-torrent'), import('webtorrent/lib/peer.js')]);
+    const [{ default: WebTorrent }, pt, { default: Peer }, { default: Wire }] = await Promise.all([
+      import('webtorrent'),
+      import('parse-torrent'),
+      import('webtorrent/lib/peer.js'),
+      import('bittorrent-protocol'),
+    ]);
     guardHandshake(Peer);
+    quickConnect(Peer);
+    if (!quickKeys(Wire)) console.error('[engine] encrypted connections keep the slow key exchange');
     this.WebTorrent = WebTorrent;
     this.parseTorrent = pt.default;
     this.toMagnetURI = pt.toMagnetURI;
@@ -146,7 +154,8 @@ export class Engine extends EventEmitter {
     const s = this.settings.settings;
     const incoming = s.network.incomingPeers;
     const client = new this.WebTorrent({
-      maxConns: s.bandwidth.peerLimit,
+      // The peer limit counts connected peers only; each torrent keeps it (dialWide).
+      maxConns: s.bandwidth.peerLimit + PENDING_CONNECTS,
       downloadLimit: s.bandwidth.downloadLimitKib > 0 ? s.bandwidth.downloadLimitKib * 1024 : -1,
       uploadLimit: s.bandwidth.uploadLimitKib > 0 ? s.bandwidth.uploadLimitKib * 1024 : -1,
       torrentPort: incoming.enabled && incoming.port > 0 ? incoming.port : 0,
@@ -207,7 +216,7 @@ export class Engine extends EventEmitter {
     if (!this.client) return;
     this.client.throttleDownload(s.bandwidth.downloadLimitKib > 0 ? s.bandwidth.downloadLimitKib * 1024 : -1);
     this.client.throttleUpload(s.bandwidth.uploadLimitKib > 0 ? s.bandwidth.uploadLimitKib * 1024 : -1);
-    this.client.maxConns = s.bandwidth.peerLimit;
+    this.client.maxConns = s.bandwidth.peerLimit + PENDING_CONNECTS;
   }
 
   /** The info hash a magnet link or `.torrent` file names, lowercase hex, or null. */
@@ -341,6 +350,8 @@ export class Engine extends EventEmitter {
     };
     if (resume.bitfield) opts.bitfield = resume.bitfield;
     const torrent = this.client.add(torrentId, opts);
+    dialWide(torrent, () => this.settings.settings.bandwidth.peerLimit);
+    torrent.on('wire', (wire) => quickRamp(wire));
     entry.torrent = torrent;
     this.resume?.track(torrent);
     // WebTorrent emits `metadata` right before it checks the data on disk, synchronously.
