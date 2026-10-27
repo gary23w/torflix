@@ -17,6 +17,7 @@
 // source tree). When the bridge listens it prints `TORFLIX_READY {"port":P}`.
 
 import '../main/threadpool.js';
+import './rejections.js';
 import http from 'node:http';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
