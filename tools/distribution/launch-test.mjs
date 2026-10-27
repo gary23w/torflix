@@ -53,10 +53,21 @@ if (process.platform === 'win32') {
   // The installer winget and Chocolatey run, silently and per user, then its uninstaller.
   check('installer', () => {
     run(find(/^Torflix-Setup-.*\.exe$/), ['/S']);
-    const dir = ['torflix', 'Torflix']
-      .map((name) => path.join(process.env.LOCALAPPDATA, 'Programs', name))
-      .find((candidate) => fs.existsSync(path.join(candidate, 'Torflix.exe')));
-    if (!dir) throw new Error('Torflix.exe is not under %LOCALAPPDATA%\\Programs');
+    // Where the installer says it put Torflix (its uninstall entry), waiting a minute in case
+    // it handed the work to another process.
+    const uninstall = spawnSync('reg', ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall', '/s', '/f', 'Uninstall Torflix.exe'], { encoding: 'utf8' }).stdout ?? '';
+    const uninstaller = uninstall.match(/UninstallString\s+REG_SZ\s+"([^"]+)"/)?.[1];
+    if (!uninstaller) throw new Error('the installer wrote no uninstall entry');
+    const dir = path.dirname(uninstaller);
+    const exe = path.join(dir, 'Torflix.exe');
+    for (let waited = 0; !fs.existsSync(exe) && waited < 60; waited += 5) {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5000);
+    }
+    if (!fs.existsSync(exe)) {
+      console.log(`${dir}: ${fs.existsSync(dir) ? fs.readdirSync(dir).join(', ') : 'missing'}`);
+      throw new Error('the installer recorded an install without Torflix.exe');
+    }
+    console.log(`Installed in ${dir}`);
     launch('installer', path.join(dir, 'Torflix.exe'));
     run(path.join(dir, 'Uninstall Torflix.exe'), ['/S', '_?=' + dir]);
     if (fs.existsSync(path.join(dir, 'Torflix.exe'))) throw new Error('the uninstaller left Torflix.exe');
