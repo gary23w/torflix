@@ -133,7 +133,8 @@ export class Engine extends EventEmitter {
   }
 
   async start() {
-    const [{ default: WebTorrent }, pt] = await Promise.all([import('webtorrent'), import('parse-torrent')]);
+    const [{ default: WebTorrent }, pt, { default: Peer }] = await Promise.all([import('webtorrent'), import('parse-torrent'), import('webtorrent/lib/peer.js')]);
+    guardHandshake(Peer);
     this.WebTorrent = WebTorrent;
     this.parseTorrent = pt.default;
     this.toMagnetURI = pt.toMagnetURI;
@@ -601,6 +602,22 @@ export async function resolveRemote(url) {
     return { bytes: buf };
   }
   throw new EngineError('fetch', 'The link redirected too many times.');
+}
+
+/**
+ * WebTorrent sends its handshake when an encrypted connection's own finishes, even when the peer
+ * was destroyed in between (downloads.js drops a torrent's peers once nothing watches it), and
+ * then reads the swarm the peer no longer has: an uncaught TypeError that ends the process. Seen
+ * when a stream stopped during an incoming connection. A destroyed peer has nothing to send.
+ */
+export function guardHandshake(Peer) {
+  const handshake = Peer.prototype.handshake;
+  if (typeof handshake !== 'function' || handshake.guarded) return;
+  Peer.prototype.handshake = function guardedHandshake() {
+    if (!this.swarm || !this.wire) return;
+    return handshake.call(this);
+  };
+  Peer.prototype.handshake.guarded = true;
 }
 
 function friendly(err) {

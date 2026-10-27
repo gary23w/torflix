@@ -63,6 +63,7 @@ const commands = [
   'updateSettings',
   'chooseDownloadDir',
   'cacheUsage',
+  'shareStatus',
   'clearCache',
   'openDownloadDir',
   'openLink',

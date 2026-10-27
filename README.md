@@ -25,6 +25,7 @@ each device's controls and player. Support for additional platforms is still ahe
 | macOS | Desktop app for Apple silicon and Intel; macOS 12 or newer | [Install on a computer](#install-it-on-a-computer) |
 | Linux | Desktop app for x64 and arm64 | [Install on a computer](#install-it-on-a-computer) |
 | Android TV / Google TV | TV app for Android 7.0 or newer, including Android TV boxes | [Install on a TV](#install-it-on-a-tv) |
+| Apple TV | No app of its own: VLC plays from Torflix on a computer or TV box on the same network | [Share to TVs](#share-to-tvs) |
 
 Both the desktop and TV apps share the same torrent engine, Browse, title pages, search and
 resume features. Desktop playback uses mouse and keyboard controls; the TV app uses a remote
@@ -182,6 +183,31 @@ sound. FFmpeg is never downloaded by Torflix: it is found on `PATH`, where winge
 a folder chosen in Settings → Advanced (`winget install Gyan.FFmpeg` on Windows,
 `brew install ffmpeg` on macOS, your package manager on Linux).
 
+## Share to TVs
+
+An Apple TV (or any TV or box with a UPnP/DLNA player) can play from Torflix running on a
+computer or an Android TV box on the same network. Turn on **Settings → Share to TVs**, then on
+the Apple TV install [VLC](https://apps.apple.com/app/vlc-media-player/id650377962) (free and
+open source), open its Local Network tab, and choose “Torflix on” followed by the computer's or
+box's name. It lists:
+
+- Continue watching, Recently played, and Playing now (what Torflix is playing at the moment).
+- The Browse rows: films play directly; a series opens to its seasons and episodes (from
+  TVmaze), and an episode finds its copy the way a title page does.
+
+Choosing a video starts it on the device sharing it, which downloads it while the TV plays, one
+video at a time: playing on the TV replaces what plays in Torflix, and the other way round. A
+video no player has read from for ten minutes stops. VLC plays every format and sound track
+itself (MKV, HEVC, Dolby, DTS) and seeks within the video; it starts from the beginning, since
+Torflix's resume positions do not carry over, and subtitle files beside a video in its torrent
+are not offered yet (subtitles inside the video file are).
+
+The device sharing has to stay on: on an Android TV box, Torflix keeps sharing while it runs,
+including after Home, and stops when you leave it with Back. Only devices on the same network
+can reach it (it answers UPnP searches on UDP 1900 and serves on TCP 8327), and nothing is
+shared beyond that network. The first time, a computer may ask whether Torflix may accept
+connections; allow it for the network the TV is on.
+
 ## Everything it does
 
 - **Browse** (the start page, Ctrl+B on the desktop). The rows above come from a few broad
@@ -211,6 +237,8 @@ a folder chosen in Settings → Advanced (`winget install Gyan.FFmpeg` on Window
   another replaces it, so nothing downloads in the background for a list of videos. With "Download
   the whole video" on (Settings → Bandwidth and seeding), the rest of the one playing downloads
   too, so skipping ahead is instant.
+- **Share to TVs** (off until turned on): a UPnP/DLNA media server, so VLC on an Apple TV plays
+  from Torflix (see [Share to TVs](#share-to-tvs)).
 - **Library** with resume positions; **Files** with previews and torrent details; **Settings**
   for playback, storage and cache limits, bandwidth and seeding, search, Browse, network and
   the debug overlay.
@@ -256,6 +284,8 @@ Torflix has no telemetry. Its traffic is:
   hosts the window may load from besides itself and the loopback stream server. Information
   can be turned off in Settings → Browse.
 - On a TV, this repository's latest release on GitHub, once per start, for updates.
+- With Share to TVs on, the players on the local network: it answers their searches (SSDP,
+  UDP 1900) and serves its folders and videos to them on port 8327, to their addresses only.
 
 FFmpeg, when used on the desktop, runs locally and reads only from the loopback stream server.
 
@@ -383,6 +413,7 @@ src/main/        the services behind the window (Electron main process on the de
   library.js     playback history (JSON, atomic writes)
   settings.js    settings schema, validation, persistence
   cache.js       download-folder usage, Clear now, size and age limits
+  share.js       Share to TVs: a UPnP/DLNA media server (SSDP, folders, videos relayed with ranges)
   commands.js    every command the renderer may call
   ipc.js         the commands over Electron IPC
   smoke.js       the end-to-end self-test
