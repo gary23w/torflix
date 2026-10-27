@@ -22,7 +22,7 @@ each device's controls and player. Support for additional platforms is still ahe
 | Platform | Current app | Installation |
 | --- | --- | --- |
 | Windows | Desktop app for x64 and arm64 | [Install on a computer](#install-it-on-a-computer) |
-| macOS | Desktop app for Apple silicon and Intel; macOS 12 or newer | [Install on a computer](#install-it-on-a-computer) |
+| macOS | Desktop app for Apple silicon and Intel; macOS 13 or newer | [Install on a computer](#install-it-on-a-computer) |
 | Linux | Desktop app for x64 and arm64 | [Install on a computer](#install-it-on-a-computer) |
 | Android TV / Google TV | TV app for Android 7.0 or newer, including Android TV boxes | [Install on a TV](#install-it-on-a-tv) |
 | Apple TV | No app of its own: VLC plays from Torflix on a computer or TV box on the same network | [Share to TVs](#share-to-tvs) |
@@ -130,7 +130,7 @@ torrent or a file, and the same Browse, title pages and search.
 
 ### Install it on a computer
 
-Desktop builds support Windows, macOS 12 or newer, and Linux, each for x64 and arm64.
+Desktop builds support Windows, macOS 13 or newer, and Linux, each for x64 and arm64.
 Download the available packages from the [latest release](https://github.com/gary23w/torflix/releases/latest).
 
 **Windows**: run the installer:
