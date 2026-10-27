@@ -1,7 +1,7 @@
 {
   "name": "torflix",
   "productName": "Torflix",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Torflix for Android TV and the desktop: browse what performs best on the swarm and stream it. Built on the design of TorrentPlayer.",
   "homepage": "https://github.com/gary23w/torflix",
   "author": {
@@ -31,6 +31,7 @@
     "android:release": "node tools/android/release.mjs"
   },
   "dependencies": {
+    "bittorrent-protocol": "^5.0.9",
     "parse-torrent": "^11.0.24",
     "webtorrent": "^3.0.21"
   },

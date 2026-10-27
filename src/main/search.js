@@ -382,7 +382,7 @@ export class SearchService {
     const timeout = AbortSignal.timeout(STREAM_TIMEOUT_MS);
     const res = await fetch(search.url('/search/stream'), {
       signal: AbortSignal.any([signal, timeout]),
-      headers: { Accept: 'text/event-stream', 'User-Agent': 'Torflix/0.3.0' },
+      headers: { Accept: 'text/event-stream', 'User-Agent': 'Torflix/0.3.1' },
     });
     if (!res.ok || !res.body) throw new Error(`search service answered ${res.status}`);
     const type = res.headers.get('content-type') ?? '';
@@ -469,7 +469,7 @@ export class SearchService {
   async #plain(search) {
     const res = await fetch(search.url('/search'), {
       signal: AbortSignal.any([search.controller.signal, AbortSignal.timeout(STREAM_TIMEOUT_MS)]),
-      headers: { Accept: 'application/json', 'User-Agent': 'Torflix/0.3.0' },
+      headers: { Accept: 'application/json', 'User-Agent': 'Torflix/0.3.1' },
     });
     if (!res.ok) throw new Error(`search service answered ${res.status}`);
     const body = await res.json();

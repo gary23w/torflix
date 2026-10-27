@@ -105,13 +105,13 @@ test('resume data: metadata once, the piece map, forgetting, pruning', async () 
 });
 
 /** Streams over a fake engine whose adds resolve when the test says so. */
-function fakeStreams() {
+function fakeStreams({ path = 'Film.mkv' } = {}) {
   const pending = new Map();
   const entries = new Map();
   const entryFor = (hash) => {
     if (!entries.has(hash)) {
-      const torrent = fakeTorrent();
-      const file = { offset: 0, length: 1e9, path: 'Film.mkv', _torrent: torrent, select() {}, deselect() {} };
+      const torrent = fakeTorrent({ pieces: 1000 });
+      const file = { offset: 0, length: 1e9, path, _torrent: torrent, select() {}, deselect() {} };
       entries.set(hash, { id: entries.size + 1, infoHash: hash, name: hash, torrent, file, bgSelected: new Set(), lastUsedAt: 0 });
     }
     return entries.get(hash);
@@ -119,7 +119,7 @@ function fakeStreams() {
   const engine = {
     debug: false,
     add: (_source, { infoHash }) => new Promise((resolve) => pending.set(infoHash, () => resolve(entryFor(infoHash)))),
-    files: () => [{ index: 0, path: 'Film.mkv', length: 1e9, kind: 'video' }],
+    files: () => [{ index: 0, path, length: 1e9, kind: 'video' }],
     file: (entry) => entry.file,
     magnetOf: (entry) => `magnet:?xt=urn:btih:${entry.infoHash}`,
   };
@@ -150,4 +150,21 @@ test('Play on what is already playing keeps the same stream', async () => {
   resolve('a');
   assert.equal((await again).streamId, a.streamId);
   assert.equal(streams.streams.size, 1);
+});
+
+test('Play fetches a Matroska file’s end with its start, an MP4’s only with what is left over', async () => {
+  const opened = async (path) => {
+    const { streams, resolve } = fakeStreams({ path });
+    const start = streams.start({ source: 'magnet:?a', infoHash: 'a' });
+    resolve('a');
+    await start;
+    return streams.active().entry.torrent;
+  };
+  const last = 953; // the piece of byte 1e9 - 1, at 1 MiB a piece
+  const mkv = await opened('Film.mkv');
+  assert.deepEqual(items(mkv), ['0-3@3s', `${last - 2}-${last}@3s`]);
+  assert.deepEqual(mkv.criticalCalls, [[0, 3], [last - 2, last]]);
+  const mp4 = await opened('Film.mp4');
+  assert.deepEqual(items(mp4), ['0-3@3s', `${last - 2}-${last}@1s`]);
+  assert.deepEqual(mp4.criticalCalls, [[0, 3]]);
 });
