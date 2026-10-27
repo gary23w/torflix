@@ -75,7 +75,20 @@ async function main() {
     for (const res of clients) res.write(message);
   };
 
-  const ctx = await createCore({ dataDir, defaultDownloadDir: downloadDir, send, version: process.env.TORFLIX_VERSION ?? '0.0.0', platform: 'android-tv' });
+  const ctx = await createCore({
+    dataDir,
+    defaultDownloadDir: downloadDir,
+    send,
+    version: process.env.TORFLIX_VERSION ?? '0.0.0',
+    platform: 'android-tv',
+    share: {
+      // The box's name as its owner set it (NodeBackend), else its model.
+      deviceName: process.env.TORFLIX_DEVICE_NAME || 'Android TV',
+      iconPath: path.join(SERVED.assets, 'icon.png'),
+      // Android drops multicast on Wi-Fi unless the app holds a lock: NodeBackend takes it.
+      onMulticast: (on) => console.log(`TORFLIX_MULTICAST ${on ? 'on' : 'off'}`),
+    },
+  });
   if (firstRun) ctx.settings.update({ storage: { cacheLimitGb: DEFAULT_CACHE_LIMIT_GB } });
   const commands = createCommands(ctx, {
     // The bundle has the package version built in (tools/android/build.mjs).

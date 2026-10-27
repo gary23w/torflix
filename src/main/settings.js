@@ -60,6 +60,8 @@ export function defaultSettings() {
     network: {
       incomingPeers: { enabled: false, port: 0, upnp: false },
       vpnHintDismissed: false,
+      // Share to TVs (share.js): a media server VLC on an Apple TV finds on this network.
+      shareOnLan: false,
     },
     browse: {
       enabled: true,
@@ -139,6 +141,7 @@ export function problems(s) {
     push('network.incomingPeers.port', 'Choose a port between 1024 and 65535, or 0 for a random one.');
   }
   if (!isBool(s.network.vpnHintDismissed)) push('network.vpnHintDismissed', 'On or off.');
+  if (!isBool(s.network.shareOnLan)) push('network.shareOnLan', 'On or off.');
   if (!isBool(s.browse.enabled)) push('browse.enabled', 'On or off.');
   if (!isBool(s.browse.fetchInfo)) push('browse.fetchInfo', 'On or off.');
   if (!(typeof s.browse.region === 'string' && /^[A-Z]{2}$/.test(s.browse.region))) push('browse.region', 'Use a two-letter country code, for example US or GB.');

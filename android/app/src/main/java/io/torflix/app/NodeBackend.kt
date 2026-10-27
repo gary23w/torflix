@@ -3,7 +3,9 @@
 package io.torflix.app
 
 import android.content.Context
+import android.net.wifi.WifiManager
 import android.os.Build
+import android.provider.Settings
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -23,6 +25,8 @@ import kotlin.concurrent.thread
 object NodeBackend {
     private const val TAG = "TorflixNode"
     private const val READY = "TORFLIX_READY "
+    /** `TORFLIX_MULTICAST on|off`: sharing to TVs started or stopped (share.js). */
+    private const val MULTICAST = "TORFLIX_MULTICAST "
     private const val MAX_RESTARTS = 5
     private const val KEPT_LINES = 12
 
@@ -44,6 +48,8 @@ object NodeBackend {
     private val listeners = CopyOnWriteArraySet<Listener>()
     private val lastLines = ArrayDeque<String>()
     private var process: Process? = null
+    /** Held while sharing to TVs: without it Android drops the players' searches on Wi-Fi. */
+    private var multicastLock: WifiManager.MulticastLock? = null
     private var starting = false
     private var stopping = false
     private var restarts = 0
@@ -81,6 +87,7 @@ object NodeBackend {
         bridge = null
         process?.destroy()
         process = null
+        multicast(null, false)
     }
 
     private fun launch(app: Context) {
@@ -101,6 +108,8 @@ object NodeBackend {
                 put("UV_THREADPOOL_SIZE", "16")
                 put("HOME", app.filesDir.path)
                 put("TMPDIR", app.cacheDir.path)
+                // What a TV's player lists this box as: "Torflix on <name>".
+                put("TORFLIX_DEVICE_NAME", deviceName(app))
                 // Test builds log every stream request and peer to logcat.
                 if (BuildConfig.DEBUG) put("TORRENTPLAYER_DEBUG", "1")
             }
@@ -117,6 +126,8 @@ object NodeBackend {
                     val b = Bridge(port, token)
                     bridge = b
                     main.post { listeners.forEach { it.onReady(b) } }
+                } else if (line.startsWith(MULTICAST)) {
+                    multicast(app, line.removePrefix(MULTICAST).trim() == "on")
                 } else {
                     keep(line)
                 }
@@ -135,6 +146,7 @@ object NodeBackend {
             if (process !== p) return
             process = null
             bridge = null
+            multicast(null, false)
             again = !stopping && restarts < MAX_RESTARTS
             if (again) restarts += 1
         }
@@ -191,6 +203,28 @@ object NodeBackend {
                 // Stopping the engine (leaving the app) interrupts the read; that is not an error.
             }
         }
+    }
+
+    /** Takes or lets go of the multicast lock (`app` is only needed to take it). */
+    @Synchronized
+    private fun multicast(app: Context?, on: Boolean) {
+        if (!on) {
+            multicastLock?.takeIf { it.isHeld }?.release()
+            multicastLock = null
+            return
+        }
+        if (multicastLock?.isHeld == true || app == null) return
+        val wifi = app.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return
+        multicastLock = wifi.createMulticastLock("torflix-share").apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+    }
+
+    /** The name the owner gave this box (Android 7.1 and later), else its model. */
+    private fun deviceName(app: Context): String {
+        val named = if (Build.VERSION.SDK_INT >= 25) Settings.Global.getString(app.contentResolver, Settings.Global.DEVICE_NAME) else null
+        return named?.takeIf { it.isNotBlank() } ?: Build.MODEL
     }
 
     private fun keep(line: String) {

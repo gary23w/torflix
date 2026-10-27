@@ -16,6 +16,8 @@ export class SettingsView {
     this.view = null;
     this.info = null;
     this.usage = null;
+    /** Sharing to TVs: its name, addresses and any problem (shareStatus). */
+    this.share = null;
     this.fieldErrors = new Map();
     this.render();
   }
@@ -25,13 +27,18 @@ export class SettingsView {
     this.render();
   }
 
+  setShare(status) {
+    this.share = status;
+    this.render();
+  }
+
   async refresh() {
     try {
       const [view, info] = await Promise.all([this.api.getSettings(), this.info ?? this.api.appInfo()]);
       this.info = info;
       this.view = view;
       this.render();
-      [this.usage, this.tools] = await Promise.all([this.api.cacheUsage(), this.api.mediaTools().catch(() => null)]);
+      [this.usage, this.tools, this.share] = await Promise.all([this.api.cacheUsage(), this.api.mediaTools().catch(() => null), this.api.shareStatus().catch(() => null)]);
       this.render();
     } catch (err) {
       this.onError(err);
@@ -48,11 +55,28 @@ export class SettingsView {
         this.render();
         this.tools = await this.api.mediaTools().catch(() => null);
       }
+      if (patch.network && 'shareOnLan' in patch.network) this.share = await this.api.shareStatus().catch(() => null);
     } catch (err) {
       if (Array.isArray(err.fieldErrors)) for (const fe of err.fieldErrors) this.fieldErrors.set(fe.field, fe.message);
       else this.onError(err);
     }
     this.render();
+  }
+
+  /** Under the switch: how a TV finds this device, or why it cannot. */
+  #shareStatus(on) {
+    const share = this.share;
+    const line = (text, cls = 'p.help') => h(cls, { style: { margin: '0.25rem 0 0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' } }, text);
+    if (!on) return null;
+    if (!share) return line('Starting…');
+    const parts = [];
+    if (share.running && share.addresses.length > 0) {
+      parts.push(line(`Shared as “${share.name}” (${share.addresses.map((a) => `${a}:${share.port}`).join(', ')}). On the Apple TV, open VLC, go to Local Network, and choose “${share.name}”.`));
+    }
+    if (share.error) parts.push(h('div.notice', null, share.error));
+    // The system asks once whether Torflix may take connections; refused, no TV reaches it.
+    parts.push(h('p.help.desktop-only', { style: { margin: '0 0 0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' } }, 'The first time, your computer may ask whether Torflix may accept connections: allow it, on the kind of network your TV is on.'));
+    return parts;
   }
 
   render() {
@@ -203,6 +227,17 @@ export class SettingsView {
           toggle('search.preloadTopResult', 'Preload the best pick', 'Fetch the start of the best search result, and of the title opened on Browse, so Play starts at once. Uses your connection for videos you may not watch; never uploaded, deleted if unused.', s.search.preloadTopResult, (v) => this.update({ search: { preloadTopResult: v } })),
           toggle('search.prefetchResults', 'Fetch details and pictures from results', 'Joins the swarms of the results on screen for their file lists and a picture from inside each torrent. Posters from TVmaze and Wikipedia show either way.', s.search.prefetchResults, (v) => this.update({ search: { prefetchResults: v } })),
           number('search.resultsPerSearch', 'Results per search', null, s.search.resultsPerSearch, { min: 10, max: 500, onchange: (v) => this.update({ search: { resultsPerSearch: v } }) }),
+        ),
+        section(
+          'Share to TVs',
+          toggle(
+            'network.shareOnLan',
+            'Share to TVs on this network',
+            'VLC on an Apple TV, and other UPnP and DLNA players on your network, find Torflix and play from it: Continue watching, Recently played, Playing now and the Browse rows. Videos download here while they play, one at a time.',
+            s.network.shareOnLan,
+            (v) => this.update({ network: { shareOnLan: v } }),
+          ),
+          this.#shareStatus(s.network.shareOnLan),
         ),
         section(
           'Network',
