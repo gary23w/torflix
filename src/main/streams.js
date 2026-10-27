@@ -32,7 +32,16 @@ const TAIL_BYTES = 2 * 1024 * 1024;
  * reads takes over from there.
  */
 const OPEN_HEAD_BYTES = 4 * 1024 * 1024;
-const TAIL_FIRST = new Set(['mkv', 'mka', 'webm', 'mk3d', 'mp4', 'm4v', 'mov']);
+/** Matroska keeps its cues at the end, and the player reads them before it starts. */
+const TAIL_FIRST = new Set(['mkv', 'mka', 'webm', 'mk3d']);
+/**
+ * An MP4's index is at its start (most copies played: the player never asked for the end) or at
+ * its end. The end is fetched with what the start leaves over, not alongside it: with large
+ * pieces it was a whole piece more before the first frame. If the index is there, the player's
+ * own request for it puts it first.
+ */
+const TAIL_SPARE = new Set(['mp4', 'm4v', 'mov']);
+const TAIL_SPARE_PRIORITY = 1;
 
 let nextStreamId = 1;
 
@@ -141,7 +150,9 @@ export class Streams {
     const torrent = entry.torrent;
     const pieceAt = (byte) => Math.floor((file.offset + Math.min(Math.max(0, byte), Math.max(0, file.length - 1))) / torrent.pieceLength);
     stream.foci = [addFocus(torrent, pieceAt(0), pieceAt(OPEN_HEAD_BYTES - 1))];
-    if (TAIL_FIRST.has(extensionOf(file.path))) stream.foci.push(addFocus(torrent, pieceAt(file.length - TAIL_BYTES), pieceAt(file.length - 1)));
+    const ext = extensionOf(file.path);
+    if (TAIL_FIRST.has(ext)) stream.foci.push(addFocus(torrent, pieceAt(file.length - TAIL_BYTES), pieceAt(file.length - 1)));
+    else if (TAIL_SPARE.has(ext)) stream.foci.push(addFocus(torrent, pieceAt(file.length - TAIL_BYTES), pieceAt(file.length - 1), TAIL_SPARE_PRIORITY, { critical: false }));
     const known = this.library.get(entry.infoHash, target.index);
     if (stream.resumeSecs && known?.durationSecs > 0) {
       const at = (stream.resumeSecs / known.durationSecs) * file.length;

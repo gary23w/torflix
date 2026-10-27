@@ -31,6 +31,7 @@
     "android:release": "node tools/android/release.mjs"
   },
   "dependencies": {
+    "bittorrent-protocol": "^5.0.9",
     "parse-torrent": "^11.0.24",
     "webtorrent": "^3.0.21"
   },
