@@ -1,22 +1,24 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //
-// Search over the public index at search.emberglow.tech (a JSON API over Jackett). One request
-// per search: the server-sent event stream `/search/stream` answers with one `indexer` event
-// per indexer as it finishes, then `done`. Results are merged and ranked here as they arrive,
-// and reported to the window at most every 150 ms. Without the stream, `/search` is asked
-// once. Finished searches are kept for 10 minutes, like the service's own cache.
+// Search over public torrent indexes, asked directly from this device (indexers.js): every
+// source at once, each one's results merged and ranked here as it answers, and reported to the
+// window at most every 150 ms. No service sits in between, so no one else's outage stops search.
+// Finished searches are kept for 10 minutes, and requests to one host are spaced, so the indexes
+// are asked gently.
 
 import { EventEmitter } from 'node:events';
 import { kindOfCategoryIds, parseQuality, rank, reason, watchScore } from '../shared/quality.js';
+import { userAgent as torflixUserAgent } from '../shared/meta/util.js';
+import { SOURCES } from './indexers.js';
 
-export const DEFAULT_BASE_URL = 'https://search.emberglow.tech';
 const PROGRESS_INTERVAL_MS = 150;
 const CACHE_TTL_MS = 10 * 60 * 1000;
-const STREAM_TIMEOUT_MS = 30_000;
-const FIRST_EVENT_TIMEOUT_MS = 8_000;
-const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const MAX_QUERY_LENGTH = 200;
-const MIN_REQUEST_GAP_MS = 1100;
+/** Least time between the starts of two requests to one host. */
+const HOST_GAP_MS = 350;
+
+/** A search that failed as a whole: its message is already what the window shows. */
+export class SearchError extends Error {}
 
 let nextSearchId = 1;
 
@@ -80,14 +82,13 @@ function candidate(raw, indexerName) {
 }
 
 class Search extends EventEmitter {
-  constructor({ id, query, categories, hideAdult, limit, baseUrl, audioConverts = false }) {
+  constructor({ id, query, categories, hideAdult, limit, audioConverts = false }) {
     super();
     this.id = id;
     this.query = query;
     this.categories = categories;
     this.hideAdult = hideAdult;
     this.limit = limit;
-    this.baseUrl = baseUrl;
     this.audioConverts = audioConverts;
     this.controller = new AbortController();
     /** @type {Map<string, any>} merged by key */
@@ -101,14 +102,6 @@ class Search extends EventEmitter {
     this.excludedAdult = 0;
     this.lastEmit = 0;
     this.timer = null;
-  }
-
-  url(path) {
-    const u = new URL(path, this.baseUrl);
-    u.searchParams.set('q', this.query);
-    u.searchParams.set('limit', String(this.limit));
-    for (const c of this.categories) u.searchParams.append('category', String(c));
-    return u;
   }
 
   /** Merges one indexer's results. */
@@ -138,41 +131,6 @@ class Search extends EventEmitter {
       prev.health ??= c.health;
       if (prev.link.startsWith('http') && c.magnet) prev.link = c.magnet;
     }
-  }
-
-  /**
-   * A `magnet` event: the magnet link (and info hash) of a result that was keyed by its
-   * download link. The result is re-keyed by its hash, merging with one already found.
-   */
-  resolveMagnet(body) {
-    const download = httpsOnly(body?.download);
-    const magnet = strOrNull(body?.magnet, 8192);
-    const infoHash = strOrNull(body?.infohash, 40);
-    if (!download) return;
-    const hash = infoHash && HASH_RE.test(infoHash) ? infoHash.toLowerCase() : /xt=urn:btih:([0-9a-fA-F]{40})/.exec(magnet ?? '')?.[1]?.toLowerCase() ?? null;
-    if (!hash) return;
-    const key = `download:${download}`;
-    const c = this.found.get(key);
-    if (!c) return;
-    this.found.delete(key);
-    c.infoHash = hash;
-    c.magnet = magnet && /^magnet:\?/i.test(magnet) ? magnet : `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(c.title)}`;
-    c.link = c.magnet;
-    c.key = hash;
-    const existing = this.found.get(hash);
-    if (!existing) {
-      this.found.set(hash, c);
-      return;
-    }
-    for (const name of c.indexers) if (!existing.indexers.includes(name)) existing.indexers.push(name);
-    if ((c.seeders ?? -1) > (existing.seeders ?? -1)) {
-      existing.seeders = c.seeders;
-      existing.peers = c.peers;
-    }
-    existing.sizeBytes ??= c.sizeBytes;
-    existing.download ??= c.download;
-    existing.detailsUrl ??= c.detailsUrl;
-    existing.published ??= c.published;
   }
 
   /** The response as the UI sees it: ranked, with reasons and a best pick. */
@@ -248,18 +206,24 @@ class Search extends EventEmitter {
 }
 
 export class SearchService {
-  constructor({ settings, baseUrl = DEFAULT_BASE_URL } = {}) {
+  /**
+   * @param {object} opts
+   * @param {string} [opts.version] Torflix's version, for its User-Agent
+   * @param {string|null} [opts.platform] 'desktop' or 'android-tv', likewise
+   * @param {Array} [opts.sources] the indexes to ask (indexers.js)
+   */
+  constructor({ settings, version = '0', platform = null, sources = SOURCES, fetchImpl = globalThis.fetch } = {}) {
     this.settings = settings;
-    this.baseUrl = baseUrl;
+    this.userAgent = torflixUserAgent(version, platform);
+    this.sources = sources;
+    this.fetchImpl = fetchImpl;
     this.current = null;
     /** @type {Map<string, {at:number, search:Search}>} */
     this.cache = new Map();
-    this.indexerCount = null;
-    this.indexerCountAt = 0;
-    this.lastRequestAt = 0;
-    /** Requests take turns for the spacing between them. */
-    this.paceChain = Promise.resolve();
-    /** The app's own searches in flight, so two asking the same share one request. */
+    /** When a request to each host last started, and the turn the next one waits for. */
+    this.lastRequest = new Map();
+    this.turns = new Map();
+    /** The app's own searches in flight, so two asking the same share one search. */
     this.quickPending = new Map();
     this.sink = null;
   }
@@ -293,7 +257,7 @@ export class SearchService {
       queueMicrotask(() => this.sink?.(id, { ...search.progress(), cached: true }));
       return id;
     }
-    const search = new Search({ id, query: text, categories: cats, hideAdult: s.hideAdult, limit: s.resultsPerSearch, baseUrl: this.baseUrl, audioConverts: this.audioConverts });
+    const search = new Search({ id, query: text, categories: cats, hideAdult: s.hideAdult, limit: s.resultsPerSearch, audioConverts: this.audioConverts });
     search.on('progress', (p) => this.sink?.(id, p));
     search.on('done', () => {
       if (search.error === null || search.found.size > 0) this.cache.set(cacheKey, { at: Date.now(), search });
@@ -306,9 +270,9 @@ export class SearchService {
   }
 
   /**
-   * A search for the app's own use (the Browse page, title pages), not the user's: one plain
-   * request, paced with everything else, never shown as progress, cached like any search. The
-   * user's running search is left alone.
+   * A search for the app's own use (the Browse page, title pages), not the user's: the same
+   * sources, never shown as progress, cached like any search. The user's running search is left
+   * alone. Rejects (with a SearchError) only when no source answered.
    */
   quick(query, { categories = [] } = {}) {
     const text = String(query ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_QUERY_LENGTH);
@@ -320,10 +284,10 @@ export class SearchService {
     const hit = this.cache.get(cacheKey);
     if (hit) return Promise.resolve(hit.search.response());
     if (this.quickPending.has(cacheKey)) return this.quickPending.get(cacheKey);
-    const search = new Search({ id: 0, query: text, categories: cats, hideAdult: s.hideAdult, limit: Math.max(100, s.resultsPerSearch), baseUrl: this.baseUrl, audioConverts: this.audioConverts });
+    const search = new Search({ id: 0, query: text, categories: cats, hideAdult: s.hideAdult, limit: Math.max(100, s.resultsPerSearch), audioConverts: this.audioConverts });
     const p = (async () => {
-      await this.#pace();
-      await this.#plain(search);
+      await this.#run(search);
+      if (search.error !== null && search.found.size === 0) throw new SearchError(search.error);
       this.cache.set(cacheKey, { at: Date.now(), search });
       return search.response();
     })().finally(() => this.quickPending.delete(cacheKey));
@@ -336,179 +300,66 @@ export class SearchService {
     for (const [k, v] of this.cache) if (now - v.at > CACHE_TTL_MS) this.cache.delete(k);
   }
 
-  /** Waits until the index may be asked again; callers take turns, so none jumps the gap. */
-  #pace() {
-    const run = async () => {
-      const wait = MIN_REQUEST_GAP_MS - (Date.now() - this.lastRequestAt);
+  /** Runs `fn` once a request to `host` may start: starts are spaced, requests may overlap. */
+  #paced(host, fn) {
+    const turn = (this.turns.get(host) ?? Promise.resolve()).then(async () => {
+      const wait = HOST_GAP_MS - (Date.now() - (this.lastRequest.get(host) ?? 0));
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-      this.lastRequestAt = Date.now();
-    };
-    this.paceChain = this.paceChain.then(run, run);
-    return this.paceChain;
+      this.lastRequest.set(host, Date.now());
+    });
+    this.turns.set(host, turn);
+    return turn.then(fn);
   }
 
+  /**
+   * Asks every source at once; each one's results are merged as it answers. Finishes the search
+   * when all have answered or failed: with no error if any answered, else with what went wrong.
+   */
   async #run(search) {
-    this.#indexerCount(search.controller.signal).then((n) => {
-      if (n && !search.done) {
-        search.total = n;
-        search.notify();
-      }
-    });
-    await this.#pace();
-    if (search.controller.signal.aborted) return;
-    let streamed = false;
-    try {
-      streamed = await this.#stream(search);
-    } catch (err) {
-      if (search.controller.signal.aborted) return;
-      if (search.found.size > 0 || streamed) {
-        search.finish(null);
-        return;
-      }
-    }
-    if (search.done) return;
-    if (streamed) {
-      search.finish(null);
-      return;
-    }
-    await this.#pace();
-    if (search.controller.signal.aborted) return;
-    await this.#plain(search);
-  }
-
-  /** Reads `/search/stream`. Resolves true once at least one event was understood. */
-  async #stream(search) {
-    const signal = search.controller.signal;
-    const timeout = AbortSignal.timeout(STREAM_TIMEOUT_MS);
-    const res = await fetch(search.url('/search/stream'), {
-      signal: AbortSignal.any([signal, timeout]),
-      headers: { Accept: 'text/event-stream', 'User-Agent': 'Torflix/0.3.1' },
-    });
-    if (!res.ok || !res.body) throw new Error(`search service answered ${res.status}`);
-    const type = res.headers.get('content-type') ?? '';
-    if (!type.includes('text/event-stream')) throw new Error('no event stream');
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let total = 0;
-    let gotEvent = false;
-    let firstTimer = null;
-    const firstEvent = new Promise((_, reject) => {
-      firstTimer = setTimeout(() => reject(new Error('no first event')), FIRST_EVENT_TIMEOUT_MS);
-    });
-    firstEvent.catch(() => {});
-    const handle = (event, data) => {
-      let body;
-      try {
-        body = JSON.parse(data);
-      } catch {
-        return;
-      }
-      if (!gotEvent) {
-        gotEvent = true;
-        clearTimeout(firstTimer);
-      }
-      if (event === 'indexer') {
+    search.total = this.sources.length;
+    search.notify();
+    const errors = [];
+    await Promise.all(
+      this.sources.map(async (source) => {
+        let results = [];
+        let error = null;
+        try {
+          results = await this.#paced(source.host, () =>
+            source.search({
+              query: search.query,
+              categories: search.categories,
+              limit: search.limit,
+              hideAdult: search.hideAdult,
+              userAgent: this.userAgent,
+              signal: search.controller.signal,
+              fetchImpl: this.fetchImpl,
+            }),
+          );
+        } catch (err) {
+          if (search.controller.signal.aborted) return;
+          error = describeError(err);
+          errors.push(error);
+        }
+        if (search.done) return;
         search.completed += 1;
-        const name = strOrNull(body?.name, 100) ?? strOrNull(body?.id, 100) ?? 'indexer';
-        const results = Array.isArray(body?.results) ? body.results : [];
-        search.indexers.push({ name, results: results.length, error: strOrNull(body?.error, 300) });
-        search.absorb(results, name);
+        search.indexers.push({ name: source.name, results: results.length, error });
+        search.absorb(results, source.name);
         search.notify();
-      } else if (event === 'magnet') {
-        // The service looked up the magnet link of a result it offered only as a download link.
-        search.resolveMagnet(body);
-        search.notify();
-      } else if (event === 'done') {
-        if (Array.isArray(body?.indexers) && body.indexers.length > 0) {
-          search.indexers = body.indexers.map((i) => ({
-            name: strOrNull(i?.name, 100) ?? strOrNull(i?.id, 100) ?? 'indexer',
-            results: typeof i?.results === 'number' ? i.results : 0,
-            error: strOrNull(i?.error, 300),
-          }));
-          search.total = search.indexers.length;
-          search.completed = search.total;
-        }
-        if (Array.isArray(body?.results)) search.absorb(body.results, null);
-        search.finish(null);
-      } else if (event === 'error') {
-        search.finish(strOrNull(body?.error ?? body?.message, 300) ?? 'The search service is unavailable.');
-      }
-    };
-    for (;;) {
-      const next = reader.read();
-      const { value, done } = gotEvent ? await next : await Promise.race([next, firstEvent]);
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_RESPONSE_BYTES) {
-        reader.cancel().catch(() => {});
-        break;
-      }
-      buffer += decoder.decode(value, { stream: true });
-      let at;
-      while ((at = buffer.indexOf('\n\n')) >= 0) {
-        const chunk = buffer.slice(0, at);
-        buffer = buffer.slice(at + 2);
-        let event = 'message';
-        const data = [];
-        for (const line of chunk.split('\n')) {
-          if (line.startsWith('event:')) event = line.slice(6).trim();
-          else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
-        }
-        if (data.length > 0) handle(event, data.join('\n'));
-      }
-      if (search.done) {
-        reader.cancel().catch(() => {});
-        break;
-      }
-    }
-    clearTimeout(firstTimer);
-    return gotEvent;
-  }
-
-  async #plain(search) {
-    const res = await fetch(search.url('/search'), {
-      signal: AbortSignal.any([search.controller.signal, AbortSignal.timeout(STREAM_TIMEOUT_MS)]),
-      headers: { Accept: 'application/json', 'User-Agent': 'Torflix/0.3.1' },
-    });
-    if (!res.ok) throw new Error(`search service answered ${res.status}`);
-    const body = await res.json();
-    if (Array.isArray(body?.indexers)) {
-      search.indexers = body.indexers.map((i) => ({
-        name: strOrNull(i?.name, 100) ?? strOrNull(i?.id, 100) ?? 'indexer',
-        results: typeof i?.results === 'number' ? i.results : 0,
-        error: strOrNull(i?.error, 300),
-      }));
-    }
-    search.absorb(body?.results, null);
-    search.total = search.indexers.length;
-    search.completed = search.total;
-    search.finish(null);
-  }
-
-  async #indexerCount(signal) {
-    if (this.indexerCount && Date.now() - this.indexerCountAt < CACHE_TTL_MS) return this.indexerCount;
-    try {
-      const res = await fetch(new URL('/indexers', this.baseUrl), { signal: AbortSignal.any([signal, AbortSignal.timeout(8000)]) });
-      if (!res.ok) return null;
-      const body = await res.json();
-      const n = Array.isArray(body?.indexers) ? body.indexers.length : typeof body?.count === 'number' ? body.count : null;
-      if (n) {
-        this.indexerCount = n;
-        this.indexerCountAt = Date.now();
-      }
-      return n;
-    } catch {
-      return null;
-    }
+      }),
+    );
+    if (search.done) return;
+    const answered = search.indexers.some((i) => i.error === null);
+    search.finish(answered || search.found.size > 0 ? null : errors[0] ?? 'No index answered.');
   }
 }
 
-function describeError(err) {
+/** What went wrong with a search or one source, as the window says it. */
+export function describeError(err) {
+  if (err instanceof SearchError) return err.message;
   const m = err?.message ?? String(err);
-  if (/aborted|timeout/i.test(m)) return 'The search service did not answer in time.';
-  if (/fetch failed|ENOTFOUND|ECONNREFUSED|EAI_AGAIN/i.test(m)) return 'The search service could not be reached. Check your connection.';
+  if (/aborted|timeout|timed out/i.test(m)) return 'The torrent indexes did not answer in time.';
+  if (/fetch failed|ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|ENETUNREACH/i.test(m)) return 'The torrent indexes could not be reached. Check your connection.';
   if (/answered 429/.test(m)) return 'Too many searches in a short time; wait a moment.';
-  if (/answered 5\d\d/.test(m)) return 'The search service is having trouble; try again later.';
+  if (/answered 5\d\d/.test(m)) return 'The torrent indexes are having trouble; try again later.';
   return `Search failed: ${m}`;
 }

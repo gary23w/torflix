@@ -51,7 +51,7 @@ export async function createCore({ dataDir, defaultDownloadDir, send, version = 
   const streams = new Streams({ engine, server, library, settings, media });
   server.convertAudio = (opts) => media.convertAudio(opts);
   server.subtitleSrt = (id, fileIndex) => streams.subtitleSrt(id, fileIndex);
-  const search = new SearchService({ settings });
+  const search = new SearchService({ settings, version, platform });
   // With FFmpeg, Dolby and DTS audio plays (converted), so search stops ranking it down.
   const applyTools = (t) => {
     search.audioConverts = Boolean(t.ffmpeg);

@@ -13,8 +13,13 @@ import { JsonStore } from './store.js';
 import { parseRelease, titleKey } from '../shared/release.js';
 import { pickable } from '../shared/quality.js';
 import { META_VERSION } from '../shared/meta/resolve.js';
+import { describeError } from './search.js';
 
 const ROWS_TTL_MS = 30 * 60 * 1000;
+/** Rows built through an error (a search that failed, a source that did not answer) are trusted this long. */
+const ROWS_RETRY_MS = 60 * 1000;
+/** While Browse is on screen after an error, it asks again after these gaps (the last one repeats). */
+const RETRY_DELAYS_MS = [15_000, 30_000, 60_000, 120_000];
 const ROW_SIZE = 24;
 const TORRENTS_PER_TITLE = 8;
 const MOVIES = [2000];
@@ -145,12 +150,19 @@ export function groupResults(results, kind, { perTitle = TORRENTS_PER_TITLE } = 
   return out;
 }
 
+/** Whether any title in the rows has torrents behind it (the rows of an index that answered). */
+const hasTorrents = (rows) => rows.rows.some((r) => r.items.some((t) => (t.torrents?.length ?? 0) > 0));
+
 export class Browse extends EventEmitter {
-  constructor({ dataDir, search, metadata, settings }) {
+  constructor({ dataDir, search, metadata, settings, retryDelaysMs = RETRY_DELAYS_MS }) {
     super();
     this.search = search;
     this.metadata = metadata;
     this.settings = settings;
+    this.retryDelaysMs = retryDelaysMs;
+    /** Builds in a row that ended in an error, and the timer for the next try. */
+    this.failures = 0;
+    this.retryTimer = null;
     this.store = new JsonStore(path.join(dataDir, 'browse-cache.json'), () => null);
     const cached = this.store.loadSync();
     this.cachedRows = cached && typeof cached === 'object' && Array.isArray(cached.rows) ? cached : null;
@@ -171,26 +183,78 @@ export class Browse extends EventEmitter {
 
   setVisible(visible) {
     this.visible = Boolean(visible);
+    // Back on screen after an error, with no retry waiting (it came due while the page was away): ask now.
+    if (this.visible && this.cachedRows?.error && !this.building && !this.retryTimer) this.#refreshInBackground();
   }
 
-  /** The rows, from the cache when fresh (building in the background otherwise). */
-  async rows({ refresh = false } = {}) {
-    const fresh = this.cachedRows && Date.now() - this.cachedRows.fetchedAt < ROWS_TTL_MS;
-    if (fresh && !refresh) {
-      this.#enrichAll(this.cachedRows);
-      return this.#view(this.cachedRows);
-    }
+  /**
+   * Whether rows can be shown without asking again: good rows for half an hour, rows built through
+   * an error for a minute only, so one bad moment (offline at start-up, indexes that did not
+   * answer) never leaves the page empty for long, or across a restart.
+   */
+  #trusted(rows) {
+    return Boolean(rows) && Date.now() - (rows.checkedAt ?? rows.fetchedAt) < (rows.error ? ROWS_RETRY_MS : ROWS_TTL_MS);
+  }
+
+  /** The build in progress, started when there is none. */
+  #start() {
     if (!this.building) {
       this.building = this.#build().finally(() => {
         this.building = null;
       });
     }
-    if (this.cachedRows && !refresh) {
-      // Stale rows now, fresh ones once built.
-      this.building.then((rows) => this.emit('rows', this.#view(rows))).catch(() => {});
+    return this.building;
+  }
+
+  /** What the page would show of rows: the error, the hero, and which titles are in which rows. */
+  #signature(rows) {
+    return JSON.stringify([rows.error, rows.hero?.key ?? null, rows.rows.map((r) => [r.id, r.items.map((t) => t.key)])]);
+  }
+
+  /**
+   * Builds the rows and pushes them to the window when done. A retry that failed the same way
+   * again stays quiet: a redraw moves the rows and drops the remote's focus, and the page
+   * already shows that error.
+   */
+  #refreshInBackground() {
+    const before = this.cachedRows ? this.#signature(this.cachedRows) : null;
+    this.#start()
+      .then((rows) => {
+        if (!rows.error || this.#signature(rows) !== before) this.emit('rows', this.#view(rows));
+      })
+      .catch(() => {});
+  }
+
+  /** The rows, from the cache when trusted (building in the background otherwise). */
+  async rows({ refresh = false } = {}) {
+    if (this.#trusted(this.cachedRows) && !refresh) {
+      this.#enrichAll(this.cachedRows);
       return this.#view(this.cachedRows);
     }
-    return this.#view(await this.building);
+    if (this.cachedRows && !refresh) {
+      // Stale rows now, fresh ones once built.
+      const stale = this.#view(this.cachedRows);
+      this.#refreshInBackground();
+      return stale;
+    }
+    return this.#view(await this.#start());
+  }
+
+  /** After a build that ended in an error, Browse asks again while it is on screen: soon at first, then less often. */
+  #watch(built) {
+    clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    if (!built.error) {
+      this.failures = 0;
+      return;
+    }
+    const delay = this.retryDelaysMs[Math.min(this.failures, this.retryDelaysMs.length - 1)];
+    this.failures += 1;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (this.visible && !this.building) this.#refreshInBackground();
+    }, delay);
+    this.retryTimer.unref?.();
   }
 
   #view(rows) {
@@ -245,7 +309,7 @@ export class Browse extends EventEmitter {
           const response = await this.search.quick(spec.q, { categories: spec.categories });
           return { spec, groups: groupResults(response.results, spec.kind) };
         } catch (err) {
-          error ??= err?.message ?? String(err);
+          error ??= describeError(err);
           return { spec, groups: [] };
         }
       }),
@@ -298,11 +362,22 @@ export class Browse extends EventEmitter {
       }
     }
     const hero = films[0] ?? series[0] ?? null;
+    const previous = this.cachedRows;
+    if (films.length + series.length === 0 && error !== null && previous && hasTorrents(previous)) {
+      // The index gave nothing this time: the rows already read stay (with the error beside them,
+      // and their own read time) instead of being replaced by a page without its torrents.
+      previous.error = error;
+      previous.checkedAt = Date.now();
+      this.#enrichAll(previous);
+      this.#watch(previous);
+      return previous;
+    }
     const built = { fetchedAt: Date.now(), error, hero, rows };
     this.cachedRows = built;
     this.#index(built);
     this.store.save(built);
     this.#enrichAll(built);
+    this.#watch(built);
     return built;
   }
 

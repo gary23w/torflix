@@ -222,7 +222,7 @@ export class SettingsView {
         ),
         section(
           'Search',
-          h('p.help', { style: { margin: '0 0 0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' } }, 'Searches go to the public index at search.emberglow.tech, which sees your search terms. Pasting a magnet link needs nothing but the swarm.'),
+          h('p.help', { style: { margin: '0 0 0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' } }, 'Searches go from this device straight to the torrent indexes Knaben (api.knaben.org) and The Pirate Bay (apibay.org), which see your search terms and IP address. Pasting a magnet link needs nothing but the swarm.'),
           toggle('search.hideAdult', 'Hide adult categories', null, s.search.hideAdult, (v) => this.update({ search: { hideAdult: v } })),
           toggle('search.preloadTopResult', 'Preload the best pick', 'Fetch the start of the best search result, and of the title opened on Browse, so Play starts at once. Uses your connection for videos you may not watch; never uploaded, deleted if unused.', s.search.preloadTopResult, (v) => this.update({ search: { preloadTopResult: v } })),
           toggle('search.prefetchResults', 'Fetch details and pictures from results', 'Joins the swarms of the results on screen for their file lists and a picture from inside each torrent. Posters from TVmaze and Wikipedia show either way.', s.search.prefetchResults, (v) => this.update({ search: { prefetchResults: v } })),
