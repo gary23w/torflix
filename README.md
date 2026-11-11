@@ -7,6 +7,12 @@ and information, a page for every title with its seasons, episodes and Resume, a
 suited to your device. The whole torrent engine runs locally on the device you watch on: no
 separate server, no account, no keys.
 
+Torflix hosts, indexes and distributes no media. It is a BitTorrent client with a TV-style
+front end: Browse and Search ask public torrent indexes (Knaben and The Pirate Bay) what is
+listed and how many people share it, posters and descriptions come from Wikipedia, Wikidata
+and TVmaze, and what plays is the torrent you choose. You are responsible for what you
+download and watch; stream only what you have the right to.
+
 <p align="center">
   <a href="https://github.com/gary23w/torflix/releases/latest"><img src="https://img.shields.io/github/v/release/gary23w/torflix?label=Download%20Torflix&color=e50914&style=for-the-badge" alt="Download Torflix"></a>
   <br>
@@ -32,17 +38,6 @@ resume features. Desktop playback uses mouse and keyboard controls; the TV app u
 and a native player.
 
 ## Android TV and Google TV
-
-<table>
-  <tr>
-    <td><img src="assets/screens/tv-browse.jpg" alt="Browse on a TV: the top film on the swarm as the hero, with Play, More info and Search, above a row of the top ten films ranked by seeders"></td>
-    <td><img src="assets/screens/tv-film.jpg" alt="A film's title page: poster, year, running time, seeders, genres, overview, director and cast, Play, and the copies on the swarm"></td>
-  </tr>
-  <tr>
-    <td><img src="assets/screens/tv-series.jpg" alt="A series' title page: poster, network, rating, cast, Play S1 E1 getting ready to play, and its episodes below"></td>
-    <td><img src="assets/screens/tv-episodes.jpg" alt="A season's episodes, each with its still, air date, running time, overview and how many copies the swarm has of it"></td>
-  </tr>
-</table>
 
 ### The TV experience
 
@@ -121,13 +116,6 @@ installs, so Torflix says it will close, and on the next start it says it was up
 The same app runs on the desktop (Electron), with a mouse-and-keyboard player: keyboard
 controls, a seek bar that shows what is downloaded, a live piece map (D), subtitles from the
 torrent or a file, and the same Browse, title pages and search.
-
-<p align="center">
-  <a href="assets/demo/torflix-demo.mp4"><img src="assets/demo/torflix-demo.gif" alt="Torflix on the desktop: the Browse page ranks films and series by seeders, with posters; a search for Sintel marks and preloads a best pick, which plays half a second after pressing Play; skipping ahead in Tears of Steel; English subtitles from the torrent" width="800"></a>
-  <br>
-  <sub>The desktop app, recorded live and not sped up. <a href="assets/demo/torflix-demo.mp4">Full demo (MP4, 2:57)</a>.<br>
-  <em>Sintel</em> and <em>Tears of Steel</em> © Blender Foundation, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>.</sub>
-</p>
 
 ### Install it on a computer
 
