@@ -534,6 +534,9 @@ class Screen(object):
     def resume(self):
         pass
 
+    def cover(self):
+        """Another screen opened on top of this one."""
+
     def leave(self):
         pass
 
@@ -628,6 +631,11 @@ class BrowseScreen(Screen):
     def resume(self):
         self.call('browseVisible', [True])
 
+    def cover(self):
+        # After an error the engine asks the indexes again only while Browse is on screen: under
+        # a title page or a film, the Pi's processor is theirs.
+        self.call('browseVisible', [False])
+
     def leave(self):
         self.call('browseVisible', [False])
 
@@ -648,7 +656,8 @@ class BrowseScreen(Screen):
         rows = [r for r in value.get('rows') or [] if r.get('id') not in HIDDEN_ROWS and r.get('items')]
         self.rows = rows
         self.loading = False
-        self.error = value.get('error') if not rows else None
+        # With rows, an error means they could not be brought up to date (the engine keeps trying).
+        self.error = value.get('error')
         if value.get('disabled'):
             self.error = 'Browse is turned off in Settings.'
         # Keep the focus on the same title when rows are rebuilt.
@@ -760,6 +769,8 @@ class BrowseScreen(Screen):
             for i, text in enumerate(app.fonts.wrap(self.error, 20, 900, 3)):
                 app.text(s, text, MARGIN, 470 + i * 28, 20, YELLOW)
             app.text(s, 'Press A to try again.', MARGIN, 560, 20, MUTED)
+        elif self.error:
+            app.text(s, app.fonts.fit(self.error, 16, W - 2 * MARGIN), MARGIN, 356, 16, YELLOW)
         # Two rows: the focused one, and the top of the next.
         top = max(self.row, 0)
         for slot, ri in enumerate(range(top, min(top + 2, len(self.rows)))):
@@ -1617,6 +1628,8 @@ class App(object):
         return surface.get_width()
 
     def push(self, screen):
+        if self.stack:
+            self.stack[-1].cover()
         self.stack.append(screen)
         screen.enter()
         self.dirty = True
