@@ -69,7 +69,8 @@ and a native player.
   at Play); Up at the top shows the whole page from its top; every move answers within about a
   tenth of a second. OK presses, Back goes back, and on the first page Back asks once before
   leaving, since leaving stops the engine.
-- **Search** dozens of public indexers at once, with one Best pick ranked for watching.
+- **Search** public torrent indexes at once, straight from the box, with one Best pick ranked
+  for watching.
 - **Updates itself** from this repository's releases (below).
 
 ### Install it on a TV
@@ -217,8 +218,10 @@ connections; allow it for the network the TV is on.
 - **Title pages.** A card (or a search result's Title button) opens the title's own page. As it
   opens, its first choice is got ready to play, so Play starts in about a second when the swarm
   is quick; leaving the page drops it, unplayed data and all (Settings → Playback).
-- **Search** the public index at `search.emberglow.tech` (a JSON API over Jackett). Results
-  stream in per indexer, merged and ranked by relevance and a watch score (seeders, resolution,
+- **Search** public torrent indexes straight from your device, with no Torflix server in
+  between: Knaben (`api.knaben.org`, one API over many trackers' listings) and The Pirate Bay
+  (`apibay.org`). Results stream in per index, merged and ranked by relevance and a watch
+  score (seeders, resolution,
   source, HDR, playability, a fake-4K size check), with one Best pick and its reason. Rows show
   a poster looked up from the release name. Two switches in Settings → Search, both off by
   default, fetch more from the swarm: preloading the best pick, so Play starts at once and its
@@ -272,7 +275,8 @@ Torflix has no telemetry. Its traffic is:
 
 - BitTorrent traffic for what you play, for the title page you are on (getting its first choice
   ready), and for what you preload, prefetch or keep sharing with those switches turned on.
-- The public index, for your searches, the Browse rows (a few broad queries, cached), and a
+- The torrent indexes (Knaben and The Pirate Bay), for your searches, the Browse rows (a few
+  broad queries, cached), and a
   title page's copies.
 - The Torflix metadata service (`torflix-meta.vercel.app`, the code in `meta/`), for posters
   and information about titles, with a title's kind, name and year as the only things sent. It
@@ -403,7 +407,8 @@ src/main/        the services behind the window (Electron main process on the de
   stream-server.js  loopback HTTP range server with a per-run token
   streams.js     playback streams: open, stats, playback reports, subtitles, audio tracks
   media-tools.js optional FFmpeg: finding it, probing audio tracks, converting Dolby/DTS audio
-  search.js      search service: event stream, merge, rank, cache, quiet searches
+  search.js      search: asks every index at once, merge, rank, cache, quiet searches
+  indexers.js    the torrent indexes searched (Knaben, The Pirate Bay), asked directly
   browse.js      Browse rows: index queries, title grouping, enrichment
   titles.js      title pages: copies, what was watched, which copy plays an episode
   metadata.js    title information: the metadata service, else the sources; a disk cache

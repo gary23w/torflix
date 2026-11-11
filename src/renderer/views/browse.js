@@ -119,7 +119,7 @@ export class BrowseView {
 
   async load({ refresh = false } = {}) {
     this.loading = true;
-    if (!this.view) replace(this.status, h('span.pending', null, h('span.pulse'), 'Reading the swarm for the best-seeded films and series…'));
+    if (!this.view || refresh) replace(this.status, h('span.pending', null, h('span.pulse'), 'Reading the swarm for the best-seeded films and series…'));
     try {
       const view = await this.api.browseRows({ refresh });
       this.setRows(view);
@@ -183,7 +183,12 @@ export class BrowseView {
     }
     if (v.rows.length === 0) {
       clear(this.hero);
-      return replace(this.rowsEl, h('p.empty', { style: { padding: '2rem' } }, v.error ? `Nothing to show: ${v.error}` : 'Nothing to show yet.'));
+      // A way to ask again (the remote has no other): the main process also retries by itself.
+      return replace(
+        this.rowsEl,
+        h('p.empty', { style: { padding: '2rem 2rem 1rem' } }, v.error ? `Nothing to show: ${v.error}` : 'Nothing to show yet.'),
+        h('div', { style: { padding: '0 2rem' } }, h('button.btn', { type: 'button', dataset: { key: 'browse-retry', autofocus: '' }, onclick: () => this.load({ refresh: true }) }, 'Try again')),
+      );
     }
     if (v.hero) {
       this.renderHero(this.titles.get(v.hero.key) ?? v.hero);

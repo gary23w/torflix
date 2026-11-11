@@ -6,7 +6,7 @@ Torflix does not require a Torflix account and does not include advertising or t
 
 Torflix stores settings, playback history and resume positions, title caches, torrent metadata, and downloaded torrent data on your device. Storage and sharing behavior can be controlled in Settings. The Android application disables Android's automatic app backup.
 
-When you search or browse, Torflix sends search queries to the public torrent index at `search.emberglow.tech`. The index is an external service, and its operator may receive your IP address and request information.
+When you search or browse, Torflix sends search queries directly from your device to public torrent indexes: Knaben (`api.knaben.org`) and The Pirate Bay (`apibay.org`). They are external services, and their operators may receive your IP address and request information.
 
 For title information and artwork, Torflix sends a title's kind, name, and year to `torflix-meta.vercel.app`. The metadata service queries Wikipedia, Wikidata, and TVmaze. Its source is included in this repository under `meta/`. The service does not maintain its own database of users or requests; its hosting platform may retain its usual request logs. If this service is disabled or unavailable, the app may contact those information sources directly. Artwork is loaded from TVmaze and Wikimedia image hosts. These services receive ordinary network request information, including your IP address.
 

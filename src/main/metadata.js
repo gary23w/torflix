@@ -157,14 +157,24 @@ export class Metadata extends EventEmitter {
   /** The service's answer for a path: the body, or null for "not found"; a MetaError otherwise. */
   async #ask(pathname) {
     let res;
+    let text;
     try {
       res = await fetch(`${this.service}${pathname}`, { headers: { Accept: 'application/json', 'User-Agent': this.userAgent }, signal: AbortSignal.timeout(SERVICE_TIMEOUT_MS) });
-    } catch {
-      throw new MetaError('network', 'The Torflix metadata service could not be reached.');
+      if (res.status === 404) return null;
+      if (!res.ok) throw new MetaError('http', `The Torflix metadata service answered ${res.status}.`);
+      // The body is read inside the same try and timeout: a connection that stalls or drops part
+      // way through an answer is "could not be reached", not an answer in another format.
+      text = await res.text();
+    } catch (err) {
+      if (err instanceof MetaError) throw err;
+      throw new MetaError(err?.name === 'TimeoutError' ? 'timeout' : 'network', 'The Torflix metadata service could not be reached.');
     }
-    if (res.status === 404) return null;
-    if (!res.ok) throw new MetaError('http', `The Torflix metadata service answered ${res.status}.`);
-    const body = await res.json().catch(() => null);
+    let body = null;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      throw new MetaError('http', 'The Torflix metadata service sent something that is not JSON.');
+    }
     if (body?.v !== META_VERSION) throw new MetaError('http', 'The Torflix metadata service answered in another format.');
     return body;
   }

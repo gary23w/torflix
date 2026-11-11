@@ -271,7 +271,7 @@ export class Engine extends EventEmitter {
         // Its metadata was saved: the link's own lookup is not needed.
         bytes = saved.torrentFile;
       } else {
-        // A link to a .torrent file, or (the search service's download links) a redirect to a
+        // A link to a .torrent file, or (some indexes' download links) a redirect to a
         // magnet link. Resolved here: the engine's own fetch cannot follow a magnet redirect.
         const resolved = await resolveRemote(source);
         if (resolved.magnet) source = resolved.magnet;
@@ -572,8 +572,8 @@ const MAX_TORRENT_BYTES = 10 * 1024 * 1024;
 const MAX_REDIRECTS = 4;
 
 /**
- * Fetches an http(s) torrent link: `{ magnet }` when it redirects to a magnet link (as the
- * search service's download links do), else `{ bytes }` of the `.torrent` file.
+ * Fetches an http(s) torrent link: `{ magnet }` when it redirects to a magnet link (as some
+ * indexes' download links do), else `{ bytes }` of the `.torrent` file.
  */
 export async function resolveRemote(url) {
   let current = url;
