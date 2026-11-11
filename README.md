@@ -16,12 +16,12 @@ download and watch; stream only what you have the right to.
 <p align="center">
   <a href="https://github.com/gary23w/torflix/releases/latest"><img src="https://img.shields.io/github/v/release/gary23w/torflix?label=Download%20Torflix&color=e50914&style=for-the-badge" alt="Download Torflix"></a>
   <br>
-  <sub>Windows, macOS, Linux, Android TV and Google TV. <a href="#platforms">Choose your platform</a>.</sub>
+  <sub>Windows, macOS, Linux, Android TV, Google TV and Raspberry Pi. <a href="#platforms">Choose your platform</a>.</sub>
 </p>
 
 ## Platforms
 
-Torflix currently supports Windows, macOS, Linux, Android TV and Google TV. The goal is to bring
+Torflix currently supports Windows, macOS, Linux, Android TV, Google TV and the Raspberry Pi. The goal is to bring
 Torflix to all platforms, with the same browsing, search and streaming experience adapted to
 each device's controls and player. Support for additional platforms is still ahead.
 
@@ -31,6 +31,7 @@ each device's controls and player. Support for additional platforms is still ahe
 | macOS | Desktop app for Apple silicon and Intel; macOS 13 or newer | [Install on a computer](#install-it-on-a-computer) |
 | Linux | Desktop app for x64 and arm64 | [Install on a computer](#install-it-on-a-computer) |
 | Android TV / Google TV | TV app for Android 7.0 or newer, including Android TV boxes | [Install on a TV](#install-it-on-a-tv) |
+| Raspberry Pi | TV app for a Pi 2 or newer without a desktop (such as RetroPie), 32-bit | [Raspberry Pi](#raspberry-pi) |
 | Apple TV | No app of its own: VLC plays from Torflix on a computer or TV box on the same network | [Share to TVs](#share-to-tvs) |
 
 Both the desktop and TV apps share the same torrent engine, Browse, title pages, search and
@@ -171,6 +172,29 @@ the video, in sync; the picture is untouched. Without FFmpeg the player says why
 sound. FFmpeg is never downloaded by Torflix: it is found on `PATH`, where winget links it, or in
 a folder chosen in Settings → Advanced (`winget install Gyan.FFmpeg` on Windows,
 `brew install ffmpeg` on macOS, your package manager on Linux).
+
+## Raspberry Pi
+
+A Raspberry Pi that runs without a desktop, such as a RetroPie, gets a TV app of its own: Browse,
+title pages, seasons and episodes, search, Continue watching and Settings on the TV, with a
+keyboard or a controller, and playback through the Pi's hardware video decoder (omxplayer). It
+brings its own 32-bit Node.js, built on the musl C library, so it runs even on Raspbian Jessie,
+whose C library is too old for any current Node.js. Tested on a Raspberry Pi 3 Model B with
+RetroPie 4.1.
+
+Download `Torflix-<version>-raspberry-pi.tar.gz` from the
+[latest release](https://github.com/gary23w/torflix/releases/latest) onto the Pi, then:
+
+```bash
+tar -xzf Torflix-*-raspberry-pi.tar.gz && Torflix-*-raspberry-pi/install.sh
+```
+
+Torflix then appears under RetroPie's Ports. [pi/README.md](pi/README.md) has its controls and
+what a Pi 3 can play. To build it (on Linux x64 or arm64):
+
+```bash
+bash tools/pi/build-runtime.sh && node tools/pi/build.mjs
+```
 
 ## Share to TVs
 
@@ -417,6 +441,9 @@ src/shared/meta/ title information from Wikipedia, Wikidata and TVmaze (the app 
 meta/            the metadata service on Vercel
 src/android/     the Android backend and its bridge, and the page's `window.tp` over it (tp-shim.js)
 android/         the Android TV app: WebView window, Node process, TV player, updater
+src/pi/          the Raspberry Pi backend: the Android bridge's commands and events, and a picture fetcher
+pi/              the Raspberry Pi TV app (Python and pygame), its launcher and installer
+tools/pi/        the Raspberry Pi's Node runtime (Alpine, musl), the package, and its check without a Pi
 tools/make-icon.mjs  the icon generator
 tools/meta.mjs   the metadata service: try it locally, deploy it
 tools/android/   bundling the backend and pages, building Node.js and FFmpeg's audio decoders for Android, release APKs

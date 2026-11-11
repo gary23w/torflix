@@ -17,7 +17,7 @@ const getRelease = () => JSON.parse(gh('api', `repos/${repo}/releases/tags/${tag
 const initial = getRelease();
 
 for (const name of (await fs.readdir(directory)).sort()) {
-  if (!/\.(?:exe|zip|dmg|deb|rpm|AppImage)$/.test(name)) continue;
+  if (!/\.(?:exe|zip|dmg|deb|rpm|AppImage|tar\.gz)$/.test(name)) continue;
   const file = path.join(directory, name);
   if (!(await fs.stat(file)).isFile()) continue;
   const sha = createHash('sha256').update(await fs.readFile(file)).digest('hex');
@@ -36,7 +36,7 @@ for (const name of (await fs.readdir(directory)).sort()) {
 }
 
 const release = getRelease();
-const sums = release.assets.filter(asset => /\.(?:exe|apk|zip|dmg|deb|rpm|AppImage)$/.test(asset.name))
+const sums = release.assets.filter(asset => /\.(?:exe|apk|zip|dmg|deb|rpm|AppImage|tar\.gz)$/.test(asset.name))
   .map(asset => {
     if (!/^sha256:[a-f0-9]{64}$/.test(asset.digest || '')) throw new Error(`Missing GitHub SHA-256 for ${asset.name}`);
     return `${asset.digest.slice(7)}  ${asset.name}`;

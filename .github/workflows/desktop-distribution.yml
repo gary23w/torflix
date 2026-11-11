@@ -18,6 +18,9 @@ on:
     paths:
       - .github/workflows/desktop-distribution.yml
       - tools/distribution/**
+      - tools/pi/**
+      - pi/**
+      - src/pi/**
       - package.json
 
 permissions:
@@ -86,8 +89,34 @@ jobs:
             dist/*.dmg
             dist/*.zip
 
+  # The Raspberry Pi TV app (pi/README.md): Node from Alpine for 32-bit ARM, the bundled engine
+  # and the shell. No runner is a Pi, so its engine is started through qemu-arm.
+  raspberry-pi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: ARM emulation
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qemu-user-static binfmt-support
+      - run: npm ci
+      - name: Node for the Raspberry Pi
+        run: bash tools/pi/build-runtime.sh
+      - name: Build the Raspberry Pi package
+        run: node tools/pi/build.mjs
+      - name: Start its engine
+        run: bash tools/pi/smoke.sh dist/Torflix-*-raspberry-pi.tar.gz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-raspberry-pi
+          if-no-files-found: error
+          path: dist/*-raspberry-pi.tar.gz
+
   publish:
-    needs: build
+    needs: [build, raspberry-pi]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:
